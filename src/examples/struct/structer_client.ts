@@ -1,21 +1,10 @@
 import algosdk from "algosdk";
-import {ABIResult, ApplicationClient,Struct, MethodArgs, MethodArg} from "../../application_client/";
+import {ApplicationClient, ABIResult} from "../../application_client/";
 import {Schema,AVMType} from "../../generate/";
 
-export class Order implements Struct {
-    item: string = "";
-    quantity: number = 0;
-
-    encode(): MethodArg[] { return Object.values(this) }
-
-    decode(val: algosdk.ABIValue): Order {
-        // Should be a tuple (encoded as array here)
-        if(!Array.isArray(val)) throw Error("wat")
-
-        return Object.assign(new Order(), Object.fromEntries(
-            Object.keys(this).map(function (k, idx) { return [k, val[idx]]; })
-        ))
-    }
+export class Order {
+    item: string = ""
+    quantity: number = 0
 };
 
 export class Structer extends ApplicationClient {
@@ -30,16 +19,15 @@ export class Structer extends ApplicationClient {
         new algosdk.ABIMethod({ name: "read_item", desc: "", args: [{ type: "uint8", name: "order_number", desc: "" }], returns: { type: "(string,uint16)", desc: "" } })
     ];
     async place_order(order_number: number, order: Order) {
-        return await this.call(algosdk.getMethodByName(this.methods, "place_order"), { order_number: order_number, order: order });
+        const result = await this.call(algosdk.getMethodByName(this.methods, "place_order"), { order_number: order_number, order: order });
+        return new ABIResult<void>(result, undefined as void);
     }
-
-    async increase_quantity(order_number: number): Promise<ABIResult<Order>> {
+    async increase_quantity(order_number: number) {
         const result = await this.call(algosdk.getMethodByName(this.methods, "increase_quantity"), { order_number: order_number });
-        return new ABIResult<Order>(result,  new Order().decode(result.returnValue));
+        return new ABIResult<Order>(result, new Order());
     }
-
-    async read_item(order_number: number): Promise<ABIResult<Order>> {
+    async read_item(order_number: number) {
         const result = await this.call(algosdk.getMethodByName(this.methods, "read_item"), { order_number: order_number });
-        return new ABIResult<Order>(result, new Order().decode(result.returnValue))
+        return new ABIResult<Order>(result, new Order());
     }
 }

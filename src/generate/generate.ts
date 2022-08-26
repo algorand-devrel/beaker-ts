@@ -18,7 +18,7 @@ import { writeFileSync } from "fs";
 // https://ts-ast-viewer.com/#
 
 const CLIENT_NAME = "ApplicationClient";
-const CLIENT_IMPORTS = `{${CLIENT_NAME}}` 
+const CLIENT_IMPORTS = `{${CLIENT_NAME}, ABIResult}` 
 const CLIENT_PATH = "../../application_client/";
 
 const APP_SPEC_IMPORTS = "{Schema,AVMType}";
@@ -128,7 +128,6 @@ function generateClass(appSpec: AppSpec): ts.ClassDeclaration {
     undefined,
     [
       factory.createModifier(ts.SyntaxKind.ExportKeyword),
-      factory.createModifier(ts.SyntaxKind.DefaultKeyword),
     ],
     factory.createIdentifier(appSpec.contract.name),
     undefined,
@@ -191,7 +190,7 @@ function generateMethodImpl(method: ABIMethod, spec: AppSpec): ts.ClassElement {
   );
 
   for (const arg of method.args) {
-    let argType = tsTypeFromAbiType(arg.type.toString())
+    let argType
     if(arg.name in hint.structs) {
         // Its got a struct def, so we should specify the struct type in args and
         // get the values when we call `call`
@@ -199,14 +198,11 @@ function generateMethodImpl(method: ABIMethod, spec: AppSpec): ts.ClassElement {
         abiMethodArgs.push(
           factory.createPropertyAssignment(
             factory.createIdentifier(arg.name),
-            factory.createCallExpression(
-              factory.createIdentifier("Object.values"),
-              undefined,
-              [factory.createIdentifier(arg.name)],
-            ) 
-          )
+            factory.createIdentifier(arg.name),
+          ) 
         );
     }else{
+      argType = tsTypeFromAbiType(arg.type.toString())
       abiMethodArgs.push(
         factory.createPropertyAssignment(
           factory.createIdentifier(arg.name),
@@ -228,39 +224,58 @@ function generateMethodImpl(method: ABIMethod, spec: AppSpec): ts.ClassElement {
     params.push(typeParams);
   }
 
+  // Set up return type
+  let retType: ts.TypeNode = factory.createKeywordTypeNode( ts.SyntaxKind.VoidKeyword);
+
+  if(method.returns.type.toString() !== "void"){
+    retType = tsTypeFromAbiType(method.returns.type.toString())
+    // Always `output` here because pyteal, 
+    // when others app specs come in we should consider them
+    if('output' in hint.structs){
+      retType = factory.createTypeReferenceNode(hint.structs['output'].name)
+    }
+  }
 
   const body = factory.createBlock(
     [
-      factory.createReturnStatement(
-        factory.createAwaitExpression(
-          factory.createCallExpression(
-            factory.createPropertyAccessExpression(
-              factory.createThis(),
-              factory.createIdentifier("call")
-            ),
-            undefined,
-            [...callArgs, factory.createObjectLiteralExpression(abiMethodArgs)]
-          )
+      factory.createVariableStatement(
+        undefined,
+        factory.createVariableDeclarationList(
+          [
+            factory.createVariableDeclaration(
+              factory.createIdentifier("result"),
+              undefined,
+              undefined,
+              factory.createAwaitExpression(
+                factory.createCallExpression(
+                  factory.createPropertyAccessExpression(
+                    factory.createThis(),
+                    factory.createIdentifier("call")
+                  ),
+                  undefined,
+                  [...callArgs, factory.createObjectLiteralExpression(abiMethodArgs)]
+                )
+              )
+            )
+          ],
+          ts.NodeFlags.Const
         )
       ),
+      factory.createReturnStatement(
+        factory.createNewExpression(
+          factory.createIdentifier("ABIResult"),
+          [retType],
+          [factory.createIdentifier("result")]
+        )
+      )
     ],
     true
   );
 
-  // Set up return type
-  let retType = undefined;
-  // TODO:
-  //if(method.returns.type.toString() !== "void"){
-  //  retType = tsTypeFromAbiType(method.returns.type.toString())
-  //  // Always `output` here because pyteal, but when others app specs come in we should consider them
-  //  if('output' in hint.structs){
-  //    retType = factory.createTypeReferenceNode(hint.structs['output'].name)
-  //  }
-  //  retType = factory.createTypeReferenceNode(
-  //      factory.createIdentifier("Promise"),
-  //      [retType]
-  //  )
-  //}
+   // factory.createTypeReferenceNode(
+   //     factory.createIdentifier("Promise"),
+   //     [retType]
+   // ),
 
   const methodSpec = factory.createMethodDeclaration(
     undefined,
@@ -270,7 +285,7 @@ function generateMethodImpl(method: ABIMethod, spec: AppSpec): ts.ClassElement {
     undefined,
     undefined,
     params,
-    retType,
+    undefined,
     body
   );
 
@@ -373,7 +388,7 @@ function generateStruct(s: Struct): ts.TypeAliasDeclaration {
 
   return factory.createTypeAliasDeclaration(
     undefined,
-    undefined,
+    [factory.createModifier(ts.SyntaxKind.ExportKeyword)],
     factory.createIdentifier(s.name),
     undefined,
     factory.createTypeLiteralNode(members)

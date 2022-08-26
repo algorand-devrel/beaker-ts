@@ -1,5 +1,4 @@
 import {ApplicationClient, ABIResult, MethodArg, MethodArgs}  from "./application_client";
-import {Struct} from './structs';
 import { LogicError } from "./logic_error";
 
 export {
@@ -7,6 +6,5 @@ export {
     MethodArg,
     MethodArgs,
     LogicError,
-    Struct ,
     ABIResult
 }

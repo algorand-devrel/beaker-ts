@@ -1,31 +1,40 @@
 import algosdk from "algosdk";
 
-import {Struct} from './structs'
 import { getStateSchema, Schema } from "../generate/";
 import { parseLogicError, LogicError } from "./logic_error";
 
-export type MethodArg = algosdk.ABIArgument | algosdk.Transaction | Struct | MethodArg[];
+export type MethodArg = algosdk.ABIArgument | algosdk.Transaction | object | MethodArg[];
 
 export type MethodArgs = {
   [key: string]: MethodArg
 };
 
-export class ABIResult<Type> {
+export type ABIReturnType = object | void | algosdk.ABIValue
+
+export class ABIResult<T extends ABIReturnType> {
   txID: string;
   rawReturnValue: Uint8Array;
   method: algosdk.ABIMethod;
-  returnValue?: Type;
+  returnValue?: T;
   decodeError?: Error;
   txInfo?: Record<string, any>;
 
-  constructor(result: algosdk.ABIResult, returnVal: Type){
+  constructor(result: algosdk.ABIResult, t: T){
     this.txID = result.txID;
     this.rawReturnValue = result.rawReturnValue;
     this.method = result.method;
     this.decodeError = result.decodeError;
     this.txInfo = result.txInfo;
-    this.returnValue = returnVal;
+    const retType = this.method.returns.type
+    if(retType.toString() === 'void') return
+
+    if(Array.isArray(result.returnValue) && typeof t === "object"){
+      this.returnValue = Object.assign({}, t, Object.fromEntries(
+        Object.keys(t).map((k, idx)=>{ return [k, result.returnValue[idx]]})
+      ))
+    }
   }
+
 }
 
 
