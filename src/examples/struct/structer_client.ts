@@ -1,12 +1,10 @@
 import algosdk from "algosdk";
 import {ApplicationClient, ABIResult} from "../../application_client/";
 import {Schema,AVMType} from "../../generate/";
-
-export class Order {
-    item: string = ""
-    quantity: number = 0
+export class Order  {
+    item: string = "";
+    quantity: number = 0;
 };
-
 export class Structer extends ApplicationClient {
     desc: string = "";
     appSchema: Schema = { declared: {}, dynamic: {} };
@@ -18,15 +16,15 @@ export class Structer extends ApplicationClient {
         new algosdk.ABIMethod({ name: "increase_quantity", desc: "", args: [{ type: "uint8", name: "order_number", desc: "" }], returns: { type: "(string,uint16)", desc: "" } }),
         new algosdk.ABIMethod({ name: "read_item", desc: "", args: [{ type: "uint8", name: "order_number", desc: "" }], returns: { type: "(string,uint16)", desc: "" } })
     ];
-    async place_order(order_number: number, order: Order) {
+    async place_order(order_number: number, order: Order): Promise<ABIResult<void>> {
         const result = await this.call(algosdk.getMethodByName(this.methods, "place_order"), { order_number: order_number, order: order });
         return new ABIResult<void>(result, undefined as void);
     }
-    async increase_quantity(order_number: number) {
+    async increase_quantity(order_number: number): Promise<ABIResult<Order>> {
         const result = await this.call(algosdk.getMethodByName(this.methods, "increase_quantity"), { order_number: order_number });
         return new ABIResult<Order>(result, new Order());
     }
-    async read_item(order_number: number) {
+    async read_item(order_number: number): Promise<ABIResult<Order>> {
         const result = await this.call(algosdk.getMethodByName(this.methods, "read_item"), { order_number: order_number });
         return new ABIResult<Order>(result, new Order());
     }

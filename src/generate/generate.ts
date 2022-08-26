@@ -225,14 +225,13 @@ function generateMethodImpl(method: ABIMethod, spec: AppSpec): ts.ClassElement {
   }
 
   // Set up return type
-  let retType: ts.TypeNode = factory.createKeywordTypeNode( ts.SyntaxKind.VoidKeyword);
-
+  let abiRetType: ts.TypeNode = factory.createKeywordTypeNode(ts.SyntaxKind.VoidKeyword);
   if(method.returns.type.toString() !== "void"){
-    retType = tsTypeFromAbiType(method.returns.type.toString())
+    abiRetType = tsTypeFromAbiType(method.returns.type.toString())
     // Always `output` here because pyteal, 
     // when others app specs come in we should consider them
     if('output' in hint.structs){
-      retType = factory.createTypeReferenceNode(hint.structs['output'].name)
+      abiRetType = factory.createTypeReferenceNode(hint.structs['output'].name)
     }
   }
 
@@ -264,7 +263,7 @@ function generateMethodImpl(method: ABIMethod, spec: AppSpec): ts.ClassElement {
       factory.createReturnStatement(
         factory.createNewExpression(
           factory.createIdentifier("ABIResult"),
-          [retType],
+          [abiRetType],
           [factory.createIdentifier("result")]
         )
       )
@@ -272,10 +271,12 @@ function generateMethodImpl(method: ABIMethod, spec: AppSpec): ts.ClassElement {
     true
   );
 
-   // factory.createTypeReferenceNode(
-   //     factory.createIdentifier("Promise"),
-   //     [retType]
-   // ),
+  
+
+  let retType = factory.createTypeReferenceNode(
+    factory.createIdentifier("Promise"),
+    [factory.createTypeReferenceNode( factory.createIdentifier("ABIResult") , [abiRetType])]
+  )
 
   const methodSpec = factory.createMethodDeclaration(
     undefined,
@@ -285,7 +286,7 @@ function generateMethodImpl(method: ABIMethod, spec: AppSpec): ts.ClassElement {
     undefined,
     undefined,
     params,
-    undefined,
+    retType,
     body
   );
 
