@@ -1,4 +1,4 @@
-import algosdk from "algosdk";
+import algosdk, { ABIValue } from "algosdk";
 
 import { getStateSchema, Schema } from "../generate/";
 import { parseLogicError, LogicError } from "./logic_error";
@@ -11,28 +11,31 @@ export type MethodArgs = {
 
 export type ABIReturnType = object | void | algosdk.ABIValue
 
+export function decodeNamedTuple(v: ABIValue, keys: string[]): object {
+  if(!Array.isArray(v)) throw Error("Expected array")
+  if(v.length != keys.length) throw Error("Different key length than value length")
+
+  return Object.fromEntries(keys.map((key, idx)=>{ return [key, v[idx]]}))
+}
+
 export class ABIResult<T extends ABIReturnType> {
   txID: string;
   rawReturnValue: Uint8Array;
   method: algosdk.ABIMethod;
-  returnValue?: T;
+  returnValue: ABIValue;
   decodeError?: Error;
   txInfo?: Record<string, any>;
 
-  constructor(result: algosdk.ABIResult, t: T){
+  value: T;
+
+  constructor(result: algosdk.ABIResult, value?: T){
     this.txID = result.txID;
     this.rawReturnValue = result.rawReturnValue;
     this.method = result.method;
     this.decodeError = result.decodeError;
     this.txInfo = result.txInfo;
-    const retType = this.method.returns.type
-    if(retType.toString() === 'void') return
-
-    if(Array.isArray(result.returnValue) && typeof t === "object"){
-      this.returnValue = Object.assign({}, t, Object.fromEntries(
-        Object.keys(t).map((k, idx)=>{ return [k, result.returnValue[idx]]})
-      ))
-    }
+    this.returnValue = result.returnValue
+    this.value = value 
   }
 
 }

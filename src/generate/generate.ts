@@ -11,14 +11,14 @@ import {
 } from "./appspec";
 
 import algosdk, { ABIMethod } from "algosdk";
-import ts, { factory } from "typescript";
+import ts, { factory, NodeFactory } from "typescript";
 import { writeFileSync } from "fs";
 
 // AMAZING resource:
 // https://ts-ast-viewer.com/#
 
 const CLIENT_NAME = "ApplicationClient";
-const CLIENT_IMPORTS = `{${CLIENT_NAME}, ABIResult}` 
+const CLIENT_IMPORTS = `{${CLIENT_NAME}, ABIResult, decodeNamedTuple}` 
 const CLIENT_PATH = "../../application_client/";
 
 const APP_SPEC_IMPORTS = "{Schema,AVMType}";
@@ -226,12 +226,28 @@ function generateMethodImpl(method: ABIMethod, spec: AppSpec): ts.ClassElement {
 
   // Set up return type
   let abiRetType: ts.TypeNode = factory.createKeywordTypeNode(ts.SyntaxKind.VoidKeyword);
+  let resultArgs: ts.Expression[] = [factory.createIdentifier("result")]
+
   if(method.returns.type.toString() !== "void"){
     abiRetType = tsTypeFromAbiType(method.returns.type.toString())
     // Always `output` here because pyteal, 
     // when others app specs come in we should consider them
     if('output' in hint.structs){
       abiRetType = factory.createTypeReferenceNode(hint.structs['output'].name)
+      resultArgs.push(
+        factory.createAsExpression(
+          factory.createCallExpression(
+            factory.createIdentifier("decodeNamedTuple"),
+            undefined,
+            [factory.createIdentifier("result.returnValue"), factory.createArrayLiteralExpression(
+              hint.structs["output"].elements.map((elem)=>{
+                return factory.createStringLiteral(elem[0])
+              })
+            )]
+          ),
+          factory.createTypeReferenceNode(hint.structs['output'].name)
+        )
+      )
     }
   }
 
@@ -264,7 +280,7 @@ function generateMethodImpl(method: ABIMethod, spec: AppSpec): ts.ClassElement {
         factory.createNewExpression(
           factory.createIdentifier("ABIResult"),
           [abiRetType],
-          [factory.createIdentifier("result")]
+          resultArgs
         )
       )
     ],

@@ -19,5 +19,6 @@ import {Order, Structer} from "./structer_client";
   console.log(result.txID); 
 
   const result2 = await appClient.increase_quantity(1);
-  console.log("Result: ", result2.returnValue); 
+  result2.value
+  console.log("Result: ", result2.value); 
 })();
