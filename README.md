@@ -39,8 +39,8 @@ npx beaker generate  $PATH_TO_APP_SPEC_JSON $PATH_TO_WHERE_CLIENT_SHOULD_BE_WRIT
 
 This should create a new file called `${NAME_OF_APP}_client.ts`
 
-The client can now be imported and used to create or call the app!
+The client can now be imported and used to create or call the app methods by name and with expected types.
 
 See the [examples directory](https://github.com/algorand-devrel/beaker-ts/src/examples/) for usage examples.
 
-Please report issues (bound to be lots)
+Please report issues.
