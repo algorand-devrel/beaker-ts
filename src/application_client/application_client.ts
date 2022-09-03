@@ -1,46 +1,80 @@
-import algosdk, { ABIValue, SuggestedParams, TransactionParams } from "algosdk";
+import algosdk from "algosdk";
 
 import { getStateSchema, Schema } from "../";
 import { parseLogicError, LogicError } from "./logic_error";
-import { ApplicationState, AccountState, decodeState } from "./state"
+import { ApplicationState, AccountState, decodeState } from "./state";
 
-export type MethodArg = algosdk.ABIArgument | algosdk.Transaction | object | MethodArg[];
+export type MethodArg =
+  | algosdk.ABIArgument
+  | algosdk.Transaction
+  | object
+  | MethodArg[];
+export type MethodArgs = Record<string, MethodArg>;
+export type ABIReturnType = object | void | algosdk.ABIValue;
+export type TransactionOverrides = Partial<algosdk.TransactionParams>;
 
-export type MethodArgs = {
-  [key: string]: MethodArg
-};
+export function decodeNamedTuple(
+  v: algosdk.ABIValue | undefined,
+  keys: string[]
+): object {
+  if (v === undefined) return {};
+  if (!Array.isArray(v)) throw Error("Expected array");
+  if (v.length != keys.length)
+    throw Error("Different key length than value length");
 
-export type ABIReturnType = object | void | algosdk.ABIValue
+  return Object.fromEntries(
+    keys.map((key, idx) => {
+      return [key, v[idx]];
+    })
+  );
+}
 
-export function decodeNamedTuple(v: ABIValue, keys: string[]): object {
-  if(!Array.isArray(v)) throw Error("Expected array")
-  if(v.length != keys.length) throw Error("Different key length than value length")
-
-  return Object.fromEntries(keys.map((key, idx)=>{ return [key, v[idx]]}))
+export interface InnerTransaction {
+  txn: algosdk.Transaction;
+  createdAsset?: bigint;
+  createdApp?: bigint;
 }
 
 export class ABIResult<T extends ABIReturnType> {
   txID: string;
   rawReturnValue: Uint8Array;
   method: algosdk.ABIMethod;
-  returnValue: ABIValue;
-  decodeError?: Error;
-  txInfo?: Record<string, any>;
+  txInfo: Record<string, any> | undefined;
+  returnValue: algosdk.ABIValue | undefined;
+  decodeError: Error | undefined;
 
-  value: T;
+  value: T | undefined;
+  inners: InnerTransaction[];
 
-  constructor(result: algosdk.ABIResult | undefined, value?: T){
+  constructor(result: algosdk.ABIResult, value?: T) {
     this.txID = result.txID;
     this.rawReturnValue = result.rawReturnValue;
     this.method = result.method;
     this.decodeError = result.decodeError;
     this.txInfo = result.txInfo;
-    this.returnValue = result.returnValue
-    this.value = value 
+    this.returnValue = result.returnValue;
+
+    this.inners = [];
+    if (result?.txInfo !== undefined && "inner-txns" in result.txInfo) {
+      // TODO: this only parses 1 level deep
+      const outer = result.txInfo["txn"]["txn"] as algosdk.EncodedTransaction;
+      this.inners = result.txInfo["inner-txns"].map((itxn: any) => {
+        const et = itxn["txn"]["txn"] as algosdk.EncodedTransaction;
+        et.gen = outer.gen;
+        et.gh = outer.gh;
+        return {
+          createdAsset: itxn["asset-index"] as bigint,
+          createdApp: itxn["application-index"],
+          txn: algosdk.Transaction.from_obj_for_encoding(
+            itxn["txn"]["txn"] as algosdk.EncodedTransaction
+          ),
+        } as InnerTransaction;
+      });
+    }
+
+    this.value = value;
   }
-
 }
-
 
 export class ApplicationClient {
   client: algosdk.Algodv2;
@@ -48,32 +82,37 @@ export class ApplicationClient {
   appId: number;
   appAddress: string;
 
-  approvalProgram: string;
-  clearProgram: string;
-
-  approvalProgramBinary: Uint8Array;
-  clearProgramBinary: Uint8Array;
-
-  approvalProgramMap: algosdk.SourceMap;
-  clearProgramMap: algosdk.SourceMap;
-
-  appSchema: Schema;
-  acctSchema: Schema;
-
-  signer?: algosdk.TransactionSigner;
+  signer: algosdk.TransactionSigner;
   sender: string;
+
+  methods?: algosdk.ABIMethod[];
+
+  approvalProgram?: string;
+  clearProgram?: string;
+
+  approvalProgramBinary?: Uint8Array;
+  clearProgramBinary?: Uint8Array;
+
+  approvalProgramMap?: algosdk.SourceMap;
+  clearProgramMap?: algosdk.SourceMap;
+
+  appSchema?: Schema;
+  acctSchema?: Schema;
 
   constructor(opts: {
     client: algosdk.Algodv2;
+    signer: algosdk.TransactionSigner;
+    sender: string;
     appId?: number;
-    signer?: algosdk.TransactionSigner;
-    sender?: string;
   }) {
     this.client = opts.client;
 
-    if (this.appId !== undefined) {
+    if (opts.appId !== undefined) {
       this.appId = opts.appId;
       this.appAddress = algosdk.getApplicationAddress(opts.appId);
+    } else {
+      this.appId = 0;
+      this.appAddress = "";
     }
 
     this.sender = opts.sender;
@@ -89,6 +128,9 @@ export class ApplicationClient {
   }
 
   private async ensurePrograms() {
+    if (this.approvalProgram === undefined || this.clearProgram === undefined)
+      throw Error("no approval or clear program defined");
+
     if (this.approvalProgramBinary === undefined) {
       const [appBin, appMap] = await this.compile(
         Buffer.from(this.approvalProgram, "base64").toString()
@@ -106,8 +148,18 @@ export class ApplicationClient {
     }
   }
 
-  async create(txParams?: algosdk.TransactionParams): Promise<[number, string, string]> {
+  async create(
+    txParams?: TransactionOverrides
+  ): Promise<[number, string, string]> {
     await this.ensurePrograms();
+
+    if (
+      this.approvalProgramBinary === undefined ||
+      this.clearProgramBinary === undefined
+    )
+      throw Error("no approval or clear program binaries defined");
+
+    if (this.signer === undefined) throw Error("no signer defined");
 
     const sp = await this.getSuggestedParams(txParams);
 
@@ -128,18 +180,23 @@ export class ApplicationClient {
 
     try {
       const result = await atc.execute(this.client, 4);
-      const txinfo = await this.client
-        .pendingTransactionInformation(result.txIDs[0])
-        .do();
+      const txid = result.txIDs[0];
+
+      if (txid === undefined)
+        throw new Error("No transaction id returned from execute");
+
+      const txinfo = await this.client.pendingTransactionInformation(txid).do();
       this.appId = txinfo["application-index"];
       this.appAddress = algosdk.getApplicationAddress(this.appId);
-      return [this.appId, this.appAddress, result.txIDs[0]];
+      return [this.appId, this.appAddress, txid];
     } catch (e) {
-      throw this.wrapLogicError(e);
+      throw this.wrapLogicError(e as Error);
     }
   }
 
-  async delete(txParams?: algosdk.TransactionParams) {
+  async delete(txParams?: TransactionOverrides) {
+    if (this.signer === undefined) throw Error("no signer defined");
+
     const sp = await this.getSuggestedParams(txParams);
 
     const atc = new algosdk.AtomicTransactionComposer();
@@ -157,14 +214,22 @@ export class ApplicationClient {
     try {
       return await atc.execute(this.client, 4);
     } catch (e) {
-      throw this.wrapLogicError(e);
+      throw this.wrapLogicError(e as Error);
     }
   }
 
-  async update(txParams?: algosdk.TransactionParams) {
+  async update(txParams?: TransactionOverrides) {
     await this.ensurePrograms();
 
-    const sp = await this.getSuggestedParams(txParams)
+    if (
+      this.approvalProgramBinary === undefined ||
+      this.clearProgramBinary === undefined
+    )
+      throw Error("no approval or clear program binaries defined");
+
+    if (this.signer === undefined) throw Error("no signer defined");
+
+    const sp = await this.getSuggestedParams(txParams);
 
     const atc = new algosdk.AtomicTransactionComposer();
     atc.addTransaction({
@@ -182,11 +247,13 @@ export class ApplicationClient {
     try {
       return await atc.execute(this.client, 4);
     } catch (e) {
-      throw this.wrapLogicError(e);
+      throw this.wrapLogicError(e as Error);
     }
   }
 
-  async optIn(txParams?: algosdk.TransactionParams) {
+  async optIn(txParams?: TransactionOverrides) {
+    if (this.signer === undefined) throw Error("no signer defined");
+
     const sp = await this.getSuggestedParams(txParams);
 
     const atc = new algosdk.AtomicTransactionComposer();
@@ -203,11 +270,13 @@ export class ApplicationClient {
     try {
       return await atc.execute(this.client, 4);
     } catch (e) {
-      throw this.wrapLogicError(e);
+      throw this.wrapLogicError(e as Error);
     }
   }
 
-  async closeOut(txParams?: algosdk.TransactionParams) {
+  async closeOut(txParams?: TransactionOverrides) {
+    if (this.signer === undefined) throw Error("no signer defined");
+
     const sp = await this.getSuggestedParams(txParams);
 
     const atc = new algosdk.AtomicTransactionComposer();
@@ -224,11 +293,13 @@ export class ApplicationClient {
     try {
       return await atc.execute(this.client, 4);
     } catch (e) {
-      throw this.wrapLogicError(e);
+      throw this.wrapLogicError(e as Error);
     }
   }
 
-  async clearState(txParams?: algosdk.TransactionParams) {
+  async clearState(txParams?: TransactionOverrides) {
+    if (this.signer === undefined) throw Error("no signer defined");
+
     const sp = await this.getSuggestedParams(txParams);
 
     const atc = new algosdk.AtomicTransactionComposer();
@@ -244,41 +315,45 @@ export class ApplicationClient {
     try {
       return await atc.execute(this.client, 4);
     } catch (e) {
-      throw this.wrapLogicError(e);
+      throw this.wrapLogicError(e as Error);
     }
   }
 
   async call(
     method: algosdk.ABIMethod,
     args?: MethodArgs,
-    txParams?: algosdk.TransactionParams
+    txParams?: TransactionOverrides
   ): Promise<algosdk.ABIResult> {
-
     const atc = new algosdk.AtomicTransactionComposer();
 
-    await this.addMethodCall(atc, method, args, txParams)
+    await this.addMethodCall(atc, method, args, txParams);
 
     try {
-      return (await atc.execute(this.client, 4)).methodResults.pop();
+      const result = await atc.execute(this.client, 4);
+      return result.methodResults[0]
+        ? result.methodResults[0]
+        : ({} as algosdk.ABIResult);
     } catch (e) {
-      throw this.wrapLogicError(e);
+      throw this.wrapLogicError(e as Error);
     }
-
   }
 
   async addMethodCall(
     atc: algosdk.AtomicTransactionComposer,
     method: algosdk.ABIMethod,
     args?: MethodArgs,
-    txParams?: algosdk.TransactionParams
+    txParams?: TransactionOverrides
   ): Promise<algosdk.AtomicTransactionComposer> {
+    if (this.signer === undefined) throw new Error("no signer defined");
 
     const sp = await this.getSuggestedParams(txParams);
 
     const processedArgs: algosdk.ABIArgument[] = [];
     for (const expected_arg of method.args) {
+      if (args === undefined)
+        throw new Error(`No args passed, expected ${method.args}`);
 
-      if (!(expected_arg.name in args)) {
+      if (expected_arg.name === undefined || !(expected_arg.name in args)) {
         // Error! (or check hints)
         throw new Error(`Cant find required argument: ${expected_arg.name}`);
       }
@@ -286,11 +361,12 @@ export class ApplicationClient {
       let arg = args[expected_arg.name];
 
       if (arg instanceof algosdk.Transaction) {
-        arg = { txn: arg, signer: this.signer } as algosdk.TransactionWithSigner;
-      }
-
-      if(arg instanceof Object){
-        arg = Object.values(arg)
+        arg = {
+          txn: arg,
+          signer: this.signer,
+        } as algosdk.TransactionWithSigner;
+      } else if (arg instanceof Object) {
+        arg = Object.values(arg);
       }
 
       processedArgs.push(arg as algosdk.ABIArgument);
@@ -306,11 +382,18 @@ export class ApplicationClient {
       ...txParams,
     });
 
-    return atc
+    return atc;
   }
 
   wrapLogicError(e: Error): Error {
+    if (
+      this.approvalProgram === undefined ||
+      this.approvalProgramMap == undefined
+    )
+      return e;
+
     const led = parseLogicError(e.message);
+
     if (led.msg !== undefined)
       return new LogicError(
         led,
@@ -320,25 +403,73 @@ export class ApplicationClient {
     else return e;
   }
 
-  async getSuggestedParams(txParams?: algosdk.TransactionParams): Promise<algosdk.SuggestedParams> {
-    if(txParams !== undefined && txParams.suggestedParams !== undefined)  return txParams.suggestedParams
+  async resolve(
+    source: string,
+    data: bigint | number | string | Uint8Array
+  ): Promise<MethodArg> {
+    let val;
+    switch (source) {
+      case "global-state":
+        const appState = await this.getApplicationState();
+        val = appState[data as string];
+        if (val === undefined)
+          throw new Error(`no global state value: ${data}`);
+        return val;
+      case "local-state":
+        // TODO: how do we pass in which account to resolve against ?
+        // This assumes the current client sender
+        const acctState = await this.getAccountState();
+        val = acctState[data as string];
+        if (val === undefined)
+          throw new Error(`no global state value: ${data}`);
+        return val;
+      case "abi-method":
+        // TODO: args?
+        if(this.methods === undefined)
+          throw new Error("no methods defined, cannot resolve hint")
+        const meth = algosdk.getMethodByName(this.methods, data as string)
+        return await this.call(meth)
+      default:
+        return data;
+    }
+  }
+
+  async getSuggestedParams(
+    txParams?: TransactionOverrides
+  ): Promise<algosdk.SuggestedParams> {
+    if (txParams !== undefined && txParams.suggestedParams !== undefined)
+      return txParams.suggestedParams;
     return await this.client.getTransactionParams().do();
   }
 
-
   async getApplicationState(raw?: boolean): Promise<ApplicationState> {
-    const appInfo = await this.client.getApplicationByID(this.appId).do()
-    if (!('params' in appInfo) || !('global-state' in appInfo['params'])) throw Error("No global state found")
-    return decodeState(appInfo['params']['global-state'], raw) as ApplicationState
+    const appInfo = await this.client.getApplicationByID(this.appId).do();
+    if (!("params" in appInfo) || !("global-state" in appInfo["params"]))
+      throw new Error("No global state found");
+    return decodeState(
+      appInfo["params"]["global-state"],
+      raw
+    ) as ApplicationState;
   }
 
-  async getAccountState(address?: string, raw?: boolean): Promise<AccountState> {
-    if(address === undefined) address = this.getSender()
-    const acctInfo = await this.client.accountApplicationInformation(address, this.appId).do()
-    if (!('app-local-state' in acctInfo) || !('key-value' in acctInfo['app-local-state'])) throw Error("No global state found")
-    return decodeState(acctInfo['app-local-state']['key-value'], raw) as ApplicationState
+  async getAccountState(
+    address?: string,
+    raw?: boolean
+  ): Promise<AccountState> {
+    if (address === undefined) address = this.getSender();
+    const acctInfo = await this.client
+      .accountApplicationInformation(address, this.appId)
+      .do();
+    if (
+      !("app-local-state" in acctInfo) ||
+      !("key-value" in acctInfo["app-local-state"])
+    )
+      throw new Error("No global state found");
+    return decodeState(
+      acctInfo["app-local-state"]["key-value"],
+      raw
+    ) as ApplicationState;
   }
-
 
   private getSender(): string {
     return this.sender;
@@ -348,6 +479,8 @@ export class ApplicationClient {
     numLocalInts: number;
     numLocalByteSlices: number;
   } {
+    if (this.acctSchema === undefined)
+      throw new Error("No account schema defined");
     const s = getStateSchema(this.acctSchema);
     return { numLocalInts: s.uints, numLocalByteSlices: s.bytes };
   }
@@ -356,8 +489,8 @@ export class ApplicationClient {
     numGlobalInts: number;
     numGlobalByteSlices: number;
   } {
+    if (this.appSchema === undefined) throw new Error("No app schema defined");
     const s = getStateSchema(this.appSchema);
     return { numGlobalInts: s.uints, numGlobalByteSlices: s.bytes };
   }
-
 }

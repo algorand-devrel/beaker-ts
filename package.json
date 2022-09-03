@@ -1,17 +1,28 @@
 {
   "name": "beaker-ts",
-  "version": "0.0.7",
+  "version": "0.0.19",
   "description": "",
   "main": "./lib/index.js",
   "scripts": {
-    "beaker": "npx ts-node src/beaker.ts",
-    "hello": "npx ts-node src/examples/hello/hello_client_example.ts",
-    "structer": "npx ts-node src/examples/struct/structer_client_example.ts",
-    "avm7": "npx ts-node src/examples/demo_avm7/demo_avm7_example.ts",
-
     "build": "tsc -p .",
+    "beaker": "npx ts-node src/beaker.ts", 
 
-    "local": "npm install -g  && beaker generate src/examples/hello/hello.json src/examples/hello/"
+    "genhello":"npm run beaker -- generate --local examples/hello/hello.json examples/hello/",
+    "hello": "npx ts-node examples/hello/index.ts",
+
+    "genstructer":"npm run beaker -- generate --local examples/struct/structer.json examples/struct/",
+    "structer": "npx ts-node examples/struct/index.ts",
+
+    "genopup":"npm run beaker -- generate --local examples/opup/opup.json examples/opup/",
+    "opup": "npx ts-node examples/opup/index.ts",
+
+    "genamm":"npm run beaker -- generate --local examples/amm/amm.json examples/amm/",
+    "amm": "npx ts-node examples/amm/index.ts",
+
+    "genavm7":"npm run beaker -- generate --local examples/demo_avm7/demo_avm7.json examples/demo_avm7/",
+    "avm7": "npx ts-node examples/demo_avm7/index.ts",
+
+    "regen":"npm run genhello && npm run genstructer && npm run genopup && npm run genavm7 && npm run genamm"
   },
   "bin": {
     "beaker": "./lib/beaker.js"
@@ -20,7 +31,8 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^18.6.4"
+    "@types/node": "^18.6.4",
+    "@tsconfig/node16-strictest": "^1.0.3"
   },
   "dependencies": {
     "algosdk": "^1.19.0",

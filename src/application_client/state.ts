@@ -34,10 +34,10 @@ export function decodeState(state: StateValue[], raw?:boolean): State {
     const obj = {} as State 
 
     // Start with empty set
-    for(const idx in state){
-        const keyBuff = Buffer.from(state[idx].key, 'base64')
+    for(const stateVal of state){
+        const keyBuff = Buffer.from(stateVal.key, 'base64')
         const key = raw?keyBuff.toString('hex'):strOrHex(keyBuff)
-        const value = state[idx].value
+        const value = stateVal.value
 
         // In both global-state and state deltas, 1 is bytes and 2 is int
         const dataTypeFlag = value.action?value.action:value.type

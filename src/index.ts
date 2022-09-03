@@ -1,4 +1,4 @@
-export { ApplicationClient, ABIResult, MethodArg, MethodArgs, decodeNamedTuple }  from "./application_client/application_client";
+export { ApplicationClient, ABIResult, MethodArg, MethodArgs, decodeNamedTuple, TransactionOverrides }  from "./application_client/application_client";
 export { LogicError } from "./application_client/logic_error";
 
 export {generateApplicationClient} from "./generate/generate";

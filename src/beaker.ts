@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { generateApplicationClient, AppSpec } from ".";
+import { generateApplicationClient } from ".";
 
-import fs from "fs";
-import path from "path";
+import * as fs from "fs";
+import * as path from "path";
 
 const pjson = require("../package.json")
 
@@ -18,9 +18,10 @@ program
 program
   .command("generate")
   .description("Generates an application client given an application spec")
-  .argument("<string>", "path to json application spec file")
-  .argument("<string>", "path where generated client should be written")
-  .action((specPath, srcPath) => {
+  .arguments("<path-to-spec> <path-to-write>")
+  .option("-l, --local", "whether or not to use local import")
+  .action((specPath, srcPath, options) => {
+    const importPath = options.local?'../../src/':undefined
 
     if (srcPath.slice(-1) !== path.sep) srcPath += path.sep;
 
@@ -36,9 +37,9 @@ program
 
     generateApplicationClient(
       JSON.parse(fs.readFileSync(specPath).toString()),
-      srcPath
+      srcPath,
+      importPath 
     );
-
-  });
+  })
 
 program.parse()
