@@ -325,6 +325,7 @@ export class ApplicationClient {
     txParams?: TransactionOverrides
   ): Promise<algosdk.Transaction[]> {
     const atc = await this.generateAtomicComposer(method, args, txParams);
+    // TODO: The `transactions` key should at least have an accessor
     return atc['transactions'].map((txnData: { txn: algosdk.Transaction }) => txnData.txn);
   }
 
