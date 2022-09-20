@@ -222,10 +222,9 @@ function generateClass(appSpec: AppSpec): ts.ClassDeclaration {
       ...appSpec.contract.methods.map((meth) =>
         generateMethodImpl(meth, appSpec)
       ),
-      generateTxnMethodImpl(appSpec.contract.methods[0] as algosdk.ABIMethod, appSpec)
-      // ...appSpec.contract.methods.map((meth) =>
-      //   generateTxnMethodImpl(meth, appSpec)
-      // ),
+      ...appSpec.contract.methods.map((meth) =>
+        generateTxnMethodImpl(meth, appSpec)
+      ),
     ]
   );
 }
@@ -551,7 +550,7 @@ function generateTxnMethodImpl(
         : undefined;
 
     argParams.push(
-      factory.createPropertySignature(undefined, `transactions_${arg.name}`, optional, argType)
+      factory.createPropertySignature(undefined, arg.name, optional, argType)
     );
   }
 
