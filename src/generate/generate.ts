@@ -42,6 +42,7 @@ const UINT8_ARRAY_TYPE = factory.createTypeReferenceNode(UINT8_ARRAY_IDENT)
 // sdk types
 const ABI_METHOD_IDENT = factory.createIdentifier("algosdk.ABIMethod")
 const ABI_METHOD_TYPE = factory.createTypeReferenceNode( ABI_METHOD_IDENT)
+const TXN_RESULT_IDENT = factory.createIdentifier("algosdk.Transaction[]")
 
 // bkr types
 const ABI_RESULT_IDENT = factory.createIdentifier("bkr.ABIResult")
@@ -221,6 +222,10 @@ function generateClass(appSpec: AppSpec): ts.ClassDeclaration {
       ...appSpec.contract.methods.map((meth) =>
         generateMethodImpl(meth, appSpec)
       ),
+      generateTxnMethodImpl(appSpec.contract.methods[0] as algosdk.ABIMethod, appSpec)
+      // ...appSpec.contract.methods.map((meth) =>
+      //   generateTxnMethodImpl(meth, appSpec)
+      // ),
     ]
   );
 }
@@ -445,6 +450,169 @@ function generateMethodImpl(
     [factory.createModifier(ts.SyntaxKind.AsyncKeyword)],
     undefined,
     method.name,
+    undefined,
+    undefined,
+    params,
+    retType,
+    body
+  );
+
+  return methodSpec;
+}
+
+// Creates the methods on the AppClient class used to call specific ABI methods to produce
+// the unsigned transactions.
+function generateTxnMethodImpl(
+  method: algosdk.ABIMethod,
+  spec: AppSpec
+): ts.ClassElement {
+
+  const params: ts.ParameterDeclaration[] = [];
+  const callArgs: ts.Expression[] = [];
+  const abiMethodArgs: ts.PropertyAssignment[] = [];
+  const argParams: ts.PropertySignature[] = [];
+
+  const hint =
+    method.name in spec.hints ? spec.hints[method.name] : ({} as Hint);
+
+  callArgs.push(
+    factory.createCallExpression(
+      factory.createIdentifier("algosdk.getMethodByName"), 
+      undefined,
+      [
+        factory.createPropertyAccessExpression(
+          factory.createThis(),
+          factory.createIdentifier("methods")
+        ),
+        factory.createStringLiteral(method.name),
+      ]
+    )
+  );
+
+  for (const arg of method.args) {
+    if (arg.name === undefined) continue;
+
+    const argName: ts.Identifier = factory.createIdentifier(arg.name);
+
+    let argType: ts.TypeNode = tsTypeFromAbiType(arg.type.toString());
+    if (
+      hint !== undefined &&
+      hint.structs !== undefined &&
+      arg.name in hint.structs
+    ) {
+      const structHint = hint.structs[arg.name];
+      if (structHint !== undefined)
+        argType = factory.createTypeReferenceNode(structHint.name);
+    }
+
+    const defaultArg =
+      hint?.default_arguments !== undefined &&
+      arg.name in hint.default_arguments
+        ? hint.default_arguments[arg.name]
+        : undefined;
+
+    let argVal: ts.Expression = factory.createIdentifier(`args.${arg.name}`);
+    if (defaultArg !== undefined) {
+      let data: ts.Expression;
+      if (typeof defaultArg.data == "string") {
+        data = factory.createStringLiteral(defaultArg.data);
+      } else if (typeof defaultArg.data == "bigint") {
+        data = factory.createBigIntLiteral(defaultArg.data.toString());
+      } else if (typeof defaultArg.data == "number") {
+        data = factory.createNumericLiteral(defaultArg.data);
+      } else {
+        data = factory.createIdentifier("undefined");
+      }
+
+      argVal = factory.createConditionalExpression(
+        factory.createBinaryExpression(
+          argVal,
+          factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
+          factory.createIdentifier("undefined")
+        ),
+        factory.createToken(ts.SyntaxKind.QuestionToken),
+        factory.createAwaitExpression(
+          factory.createCallExpression(
+            factory.createIdentifier("this.resolve"),
+            undefined,
+            [factory.createStringLiteral(defaultArg.source), data]
+          )
+        ),
+        factory.createToken(ts.SyntaxKind.ColonToken),
+        argVal
+      );
+    }
+
+    abiMethodArgs.push(factory.createPropertyAssignment(argName, argVal));
+
+    const optional =
+      defaultArg !== undefined
+        ? factory.createToken(ts.SyntaxKind.QuestionToken)
+        : undefined;
+
+    argParams.push(
+      factory.createPropertySignature(undefined, `transactions_${arg.name}`, optional, argType)
+    );
+  }
+
+  // Expect args
+  if(argParams.length>0){
+    params.push(
+      factory.createParameterDeclaration(
+        undefined,
+        undefined,
+        undefined,
+        factory.createIdentifier("args"),
+        undefined,
+        factory.createTypeLiteralNode(argParams)
+      )
+    );
+  }
+
+  const txnParams = factory.createIdentifier("txnParams");
+  params.push(
+    factory.createParameterDeclaration(
+      undefined,
+      undefined,
+      undefined,
+      txnParams,
+      factory.createToken(ts.SyntaxKind.QuestionToken),
+      TRANSACTION_OVERRIDES_TYPE,
+    )
+  );
+
+  const body = factory.createBlock(
+    [
+      factory.createReturnStatement(
+        factory.createCallExpression(
+          factory.createPropertyAccessExpression(
+            factory.createThis(),
+            factory.createIdentifier("getTransactions")
+          ),
+          undefined,
+          [
+            ...callArgs,
+            factory.createObjectLiteralExpression(abiMethodArgs),
+            txnParams,
+          ]
+        )
+      )
+    ],
+    true
+  );
+
+  let retType = factory.createTypeReferenceNode(
+    factory.createIdentifier("Promise"),
+    [
+      factory.createTypeReferenceNode(TXN_RESULT_IDENT),
+    ]
+  );
+
+  const methodSpec = factory.createMethodDeclaration(
+    undefined,
+    [factory.createModifier(ts.SyntaxKind.AsyncKeyword)],
+    undefined,
+    `transactions_${method.name}`,
     undefined,
     undefined,
     params,

@@ -323,9 +323,9 @@ export class ApplicationClient {
     method: algosdk.ABIMethod,
     args?: MethodArgs,
     txParams?: TransactionOverrides
-  ): Promise<unknown> { // TODO: Add correct type
+  ): Promise<algosdk.Transaction[]> { // TODO: Add correct type
     const atc = await this.generateAtomicComposer(method, args, txParams);
-    return atc['transactions'];
+    return atc['transactions'].map((txnData: { txn: algosdk.Transaction }) => txnData.txn);
   }
 
   async call(
