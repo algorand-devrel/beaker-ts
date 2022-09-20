@@ -319,14 +319,21 @@ export class ApplicationClient {
     }
   }
 
+  async getTransactions(
+    method: algosdk.ABIMethod,
+    args?: MethodArgs,
+    txParams?: TransactionOverrides
+  ): Promise<unknown> { // TODO: Add correct type
+    const atc = await this.generateAtomicComposer(method, args, txParams);
+    return atc['transactions'];
+  }
+
   async call(
     method: algosdk.ABIMethod,
     args?: MethodArgs,
     txParams?: TransactionOverrides
   ): Promise<algosdk.ABIResult> {
-    const atc = new algosdk.AtomicTransactionComposer();
-
-    await this.addMethodCall(atc, method, args, txParams);
+    const atc = await this.generateAtomicComposer(method, args, txParams);
 
     try {
       const result = await atc.execute(this.client, 4);
@@ -337,6 +344,18 @@ export class ApplicationClient {
       throw this.wrapLogicError(e as Error);
     }
   }
+
+  private async generateAtomicComposer(
+		method: algosdk.ABIMethod,
+		args?: MethodArgs,
+		txParams?: TransactionOverrides
+	): Promise<algosdk.AtomicTransactionComposer> {
+		const atc = new algosdk.AtomicTransactionComposer();
+
+		await this.addMethodCall(atc, method, args, txParams);
+
+    return atc;
+	}
 
   async addMethodCall(
     atc: algosdk.AtomicTransactionComposer,
