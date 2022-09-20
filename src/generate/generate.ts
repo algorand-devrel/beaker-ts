@@ -222,10 +222,26 @@ function generateClass(appSpec: AppSpec): ts.ClassDeclaration {
       ...appSpec.contract.methods.map((meth) =>
         generateMethodImpl(meth, appSpec)
       ),
-      ...appSpec.contract.methods.map((meth) =>
-        generateTxnMethodImpl(meth, appSpec)
-      ),
+      generateTxnMethods(appSpec),
     ]
+  );
+}
+
+function generateTxnMethods(spec: AppSpec): ts.ClassElement {
+  // create desc property
+  return factory.createPropertyDeclaration(
+    undefined,
+    undefined,
+    factory.createIdentifier("transactions"),
+    undefined,
+    undefined,
+    factory.createObjectLiteralExpression(
+      spec.contract.methods.map((meth) => {
+        const [key, value] = generateTxnMethodImpl(meth, spec)
+        return factory.createPropertyAssignment(key, value)
+      }),
+      true,
+    ),
   );
 }
 
@@ -460,11 +476,11 @@ function generateMethodImpl(
 }
 
 // Creates the methods on the AppClient class used to call specific ABI methods to produce
-// the unsigned transactions.
+// the transactions, which are nested inside a `transactions` property.
 function generateTxnMethodImpl(
   method: algosdk.ABIMethod,
   spec: AppSpec
-): ts.ClassElement {
+): [string, ts.ArrowFunction] {
 
   const params: ts.ParameterDeclaration[] = [];
   const callArgs: ts.Expression[] = [];
@@ -586,7 +602,7 @@ function generateTxnMethodImpl(
         factory.createCallExpression(
           factory.createPropertyAccessExpression(
             factory.createThis(),
-            factory.createIdentifier("getTransactions")
+            factory.createIdentifier("getTxns")
           ),
           undefined,
           [
@@ -607,19 +623,17 @@ function generateTxnMethodImpl(
     ]
   );
 
-  const methodSpec = factory.createMethodDeclaration(
-    undefined,
+  const fncSpec = factory.createArrowFunction(
     [factory.createModifier(ts.SyntaxKind.AsyncKeyword)],
-    undefined,
-    `transactions_${method.name}`,
-    undefined,
     undefined,
     params,
     retType,
-    body
+    undefined,
+    body,
   );
 
-  return methodSpec;
+
+  return [method.name, fncSpec];
 }
 
 function copySchemaObject(so: Schema): ts.Expression {
