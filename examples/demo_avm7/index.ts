@@ -1,4 +1,4 @@
-import algosdk from "algosdk";
+// import algosdk from "algosdk";
 import nacl from "tweetnacl";
 import * as bkr from "../../src";
 import { DemoAVM7 } from "./demoavm7_client";
@@ -49,9 +49,8 @@ import { DemoAVM7 } from "./demoavm7_client";
   const message = "Sign me please";
   const sig = bytesigner(new Uint8Array(acct.privateKey), message);
 
-  let atc = new algosdk.AtomicTransactionComposer();
-
-  await appClient.compose.ed25519verify_bare({ msg: message, pubkey: acct.addr, sig: sig }, undefined, atc)
+  // Let the client make us a new ATC that we can pass to the next calls to compose methods
+  const atc = await appClient.compose.ed25519verify_bare({ msg: message, pubkey: acct.addr, sig: sig })
 
   // Add noop calls to increase our opcode budget since ed25519 is expensive
   await appClient.compose.noop({note: new Uint8Array(Buffer.from("noncey1"))}, atc);
