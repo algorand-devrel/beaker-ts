@@ -44,13 +44,13 @@ export class DemoAVM7 extends bkr.ApplicationClient {
     async b64decode(args: {
         b64encoded: string;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<string>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "b64decode"), { b64encoded: args.b64encoded }, txnParams);
+        const result = await this.execute(await this.compose.b64decode({ b64encoded: args.b64encoded }, txnParams));
         return new bkr.ABIResult<string>(result, result.returnValue as string);
     }
     async block(args: {
         round: bigint;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<BlockDetails>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "block"), { round: args.round }, txnParams);
+        const result = await this.execute(await this.compose.block({ round: args.round }, txnParams));
         return new bkr.ABIResult<BlockDetails>(result, BlockDetails.decodeResult(result.returnValue));
     }
     async ed25519verify_bare(args: {
@@ -58,17 +58,17 @@ export class DemoAVM7 extends bkr.ApplicationClient {
         pubkey: string;
         sig: Uint8Array;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<boolean>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "ed25519verify_bare"), { msg: args.msg, pubkey: args.pubkey, sig: args.sig }, txnParams);
+        const result = await this.execute(await this.compose.ed25519verify_bare({ msg: args.msg, pubkey: args.pubkey, sig: args.sig }, txnParams));
         return new bkr.ABIResult<boolean>(result, result.returnValue as boolean);
     }
     async json_ref(args: {
         json_str: string;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<JsonExampleResult>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "json_ref"), { json_str: args.json_str }, txnParams);
+        const result = await this.execute(await this.compose.json_ref({ json_str: args.json_str }, txnParams));
         return new bkr.ABIResult<JsonExampleResult>(result, JsonExampleResult.decodeResult(result.returnValue));
     }
     async noop(txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<void>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "noop"), {}, txnParams);
+        const result = await this.execute(await this.compose.noop(txnParams));
         return new bkr.ABIResult<void>(result);
     }
     async replace(args: {
@@ -76,13 +76,13 @@ export class DemoAVM7 extends bkr.ApplicationClient {
         start: bigint;
         replace_with: string;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<string>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "replace"), { orig: args.orig, start: args.start, replace_with: args.replace_with }, txnParams);
+        const result = await this.execute(await this.compose.replace({ orig: args.orig, start: args.start, replace_with: args.replace_with }, txnParams));
         return new bkr.ABIResult<string>(result, result.returnValue as string);
     }
     async sha3_256(args: {
         to_hash: string;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<Uint8Array>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "sha3_256"), { to_hash: args.to_hash }, txnParams);
+        const result = await this.execute(await this.compose.sha3_256({ to_hash: args.to_hash }, txnParams));
         return new bkr.ABIResult<Uint8Array>(result, result.returnValue as Uint8Array);
     }
     async vrf_verify(args: {
@@ -90,7 +90,53 @@ export class DemoAVM7 extends bkr.ApplicationClient {
         proof: Uint8Array;
         pub_key: string;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<Uint8Array>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "vrf_verify"), { msg: args.msg, proof: args.proof, pub_key: args.pub_key }, txnParams);
+        const result = await this.execute(await this.compose.vrf_verify({ msg: args.msg, proof: args.proof, pub_key: args.pub_key }, txnParams));
         return new bkr.ABIResult<Uint8Array>(result, result.returnValue as Uint8Array);
     }
+    compose = {
+        b64decode: async (args: {
+            b64encoded: string;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "b64decode"), { b64encoded: args.b64encoded }, txnParams, atc);
+        },
+        block: async (args: {
+            round: bigint;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "block"), { round: args.round }, txnParams, atc);
+        },
+        ed25519verify_bare: async (args: {
+            msg: string;
+            pubkey: string;
+            sig: Uint8Array;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "ed25519verify_bare"), { msg: args.msg, pubkey: args.pubkey, sig: args.sig }, txnParams, atc);
+        },
+        json_ref: async (args: {
+            json_str: string;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "json_ref"), { json_str: args.json_str }, txnParams, atc);
+        },
+        noop: async (txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "noop"), {}, txnParams, atc);
+        },
+        replace: async (args: {
+            orig: string;
+            start: bigint;
+            replace_with: string;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "replace"), { orig: args.orig, start: args.start, replace_with: args.replace_with }, txnParams, atc);
+        },
+        sha3_256: async (args: {
+            to_hash: string;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "sha3_256"), { to_hash: args.to_hash }, txnParams, atc);
+        },
+        vrf_verify: async (args: {
+            msg: Uint8Array;
+            proof: Uint8Array;
+            pub_key: string;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "vrf_verify"), { msg: args.msg, proof: args.proof, pub_key: args.pub_key }, txnParams, atc);
+        }
+    };
 }

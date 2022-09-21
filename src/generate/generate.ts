@@ -42,7 +42,8 @@ const UINT8_ARRAY_TYPE = factory.createTypeReferenceNode(UINT8_ARRAY_IDENT)
 // sdk types
 const ABI_METHOD_IDENT = factory.createIdentifier("algosdk.ABIMethod")
 const ABI_METHOD_TYPE = factory.createTypeReferenceNode( ABI_METHOD_IDENT)
-const TXN_RESULT_IDENT = factory.createIdentifier("algosdk.Transaction[]")
+const ATC_IDENT = factory.createIdentifier("algosdk.AtomicTransactionComposer")
+const ATC_TYPE = factory.createTypeReferenceNode(ATC_IDENT)
 
 // bkr types
 const ABI_RESULT_IDENT = factory.createIdentifier("bkr.ABIResult")
@@ -222,17 +223,17 @@ function generateClass(appSpec: AppSpec): ts.ClassDeclaration {
       ...appSpec.contract.methods.map((meth) =>
         generateMethodImpl(meth, appSpec)
       ),
-      generateTxnMethods(appSpec),
+      generateComposeMethods(appSpec),
     ]
   );
 }
 
-function generateTxnMethods(spec: AppSpec): ts.ClassElement {
+function generateComposeMethods(spec: AppSpec): ts.ClassElement {
   // create desc property
   return factory.createPropertyDeclaration(
     undefined,
     undefined,
-    factory.createIdentifier("transactions"),
+    factory.createIdentifier("compose"),
     undefined,
     undefined,
     factory.createObjectLiteralExpression(
@@ -252,26 +253,12 @@ function generateMethodImpl(
 ): ts.ClassElement {
 
   const params: ts.ParameterDeclaration[] = [];
-  const callArgs: ts.Expression[] = [];
+  //const composeArgs: ts.Expression[] = [];
   const abiMethodArgs: ts.PropertyAssignment[] = [];
   const argParams: ts.PropertySignature[] = [];
 
   const hint =
     method.name in spec.hints ? spec.hints[method.name] : ({} as Hint);
-
-  callArgs.push(
-    factory.createCallExpression(
-      factory.createIdentifier("algosdk.getMethodByName"), 
-      undefined,
-      [
-        factory.createPropertyAccessExpression(
-          factory.createThis(),
-          factory.createIdentifier("methods")
-        ),
-        factory.createStringLiteral(method.name),
-      ]
-    )
-  );
 
   for (const arg of method.args) {
     if (arg.name === undefined) continue;
@@ -415,6 +402,18 @@ function generateMethodImpl(
     }
   }
 
+  const composeArgs: ts.Expression[] = [];
+
+  if(argParams.length>0){
+    composeArgs.push(factory.createObjectLiteralExpression(abiMethodArgs))
+  }
+
+  composeArgs.push(txnParams)
+
+  const composeExpr =  factory.createAwaitExpression(
+    factory.createCallExpression(factory.createIdentifier("this.compose."+method.name), undefined, composeArgs)
+  )
+
   const body = factory.createBlock(
     [
       factory.createVariableStatement(
@@ -429,14 +428,10 @@ function generateMethodImpl(
                 factory.createCallExpression(
                   factory.createPropertyAccessExpression(
                     factory.createThis(),
-                    factory.createIdentifier("call")
+                    factory.createIdentifier("execute")
                   ),
                   undefined,
-                  [
-                    ...callArgs,
-                    factory.createObjectLiteralExpression(abiMethodArgs),
-                    txnParams,
-                  ]
+                  [ composeExpr ]
                 )
               )
             ),
@@ -596,19 +591,32 @@ function generateTxnMethodImpl(
     )
   );
 
+  const atcParam = factory.createIdentifier("atc");
+  params.push(
+    factory.createParameterDeclaration(
+      undefined,
+      undefined,
+      undefined,
+      atcParam,
+      factory.createToken(ts.SyntaxKind.QuestionToken),
+      ATC_TYPE,
+    )
+  );
+
   const body = factory.createBlock(
     [
       factory.createReturnStatement(
         factory.createCallExpression(
           factory.createPropertyAccessExpression(
             factory.createThis(),
-            factory.createIdentifier("getTxns")
+            factory.createIdentifier("addMethodCall")
           ),
           undefined,
           [
             ...callArgs,
             factory.createObjectLiteralExpression(abiMethodArgs),
             txnParams,
+            atcParam,
           ]
         )
       )
@@ -619,7 +627,7 @@ function generateTxnMethodImpl(
   let retType = factory.createTypeReferenceNode(
     factory.createIdentifier("Promise"),
     [
-      factory.createTypeReferenceNode(TXN_RESULT_IDENT),
+      factory.createTypeReferenceNode(ATC_IDENT),
     ]
   );
 

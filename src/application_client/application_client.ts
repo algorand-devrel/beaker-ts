@@ -1,4 +1,4 @@
-import algosdk, { ABIReferenceType } from "algosdk";
+import algosdk, { ABIReferenceType, AtomicTransactionComposer } from "algosdk";
 
 import { getStateSchema, Schema } from "../";
 import { parseLogicError, LogicError } from "./logic_error";
@@ -319,23 +319,9 @@ export class ApplicationClient {
     }
   }
 
-  async getTxns(
-    method: algosdk.ABIMethod,
-    args?: MethodArgs,
-    txParams?: TransactionOverrides
-  ): Promise<algosdk.Transaction[]> {
-    const atc = await this.generateAtomicComposer(method, args, txParams);
-    // TODO: The `transactions` key should at least have an accessor
-    return atc['transactions'].map((txnData: { txn: algosdk.Transaction }) => txnData.txn);
-  }
-
-  async call(
-    method: algosdk.ABIMethod,
-    args?: MethodArgs,
-    txParams?: TransactionOverrides
+  async execute(
+    atc: AtomicTransactionComposer
   ): Promise<algosdk.ABIResult> {
-    const atc = await this.generateAtomicComposer(method, args, txParams);
-
     try {
       const result = await atc.execute(this.client, 4);
       return result.methodResults[0]
@@ -346,24 +332,17 @@ export class ApplicationClient {
     }
   }
 
-  private async generateAtomicComposer(
-		method: algosdk.ABIMethod,
-		args?: MethodArgs,
-		txParams?: TransactionOverrides
-	): Promise<algosdk.AtomicTransactionComposer> {
-		const atc = new algosdk.AtomicTransactionComposer();
-
-		await this.addMethodCall(atc, method, args, txParams);
-
-    return atc;
-	}
-
   async addMethodCall(
-    atc: algosdk.AtomicTransactionComposer,
     method: algosdk.ABIMethod,
     args?: MethodArgs,
-    txParams?: TransactionOverrides
+    txParams?: TransactionOverrides,
+    atc?: algosdk.AtomicTransactionComposer,
   ): Promise<algosdk.AtomicTransactionComposer> {
+
+    if(atc === undefined){
+      atc = new algosdk.AtomicTransactionComposer() 
+    }
+
     if (this.signer === undefined) throw new Error("no signer defined");
 
     const sp = await this.getSuggestedParams(txParams);
@@ -458,7 +437,7 @@ export class ApplicationClient {
         if(this.methods === undefined)
           throw new Error("no methods defined, cannot resolve hint")
         const meth = algosdk.getMethodByName(this.methods, data as string)
-        return await this.call(meth)
+        return await this.execute(await this.addMethodCall(meth, undefined))
       default:
         return data;
     }
