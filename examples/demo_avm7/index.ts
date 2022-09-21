@@ -1,4 +1,3 @@
-// import algosdk from "algosdk";
 import nacl from "tweetnacl";
 import * as bkr from "../../src";
 import { DemoAVM7 } from "./demoavm7_client";

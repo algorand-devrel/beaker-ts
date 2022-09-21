@@ -437,7 +437,7 @@ export class ApplicationClient {
         if(this.methods === undefined)
           throw new Error("no methods defined, cannot resolve hint")
         const meth = algosdk.getMethodByName(this.methods, data as string)
-        return await this.execute(await this.addMethodCall(meth, undefined))
+        return this.execute(await this.addMethodCall(meth, undefined))
       default:
         return data;
     }

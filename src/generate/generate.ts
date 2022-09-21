@@ -238,7 +238,7 @@ function generateComposeMethods(spec: AppSpec): ts.ClassElement {
     undefined,
     factory.createObjectLiteralExpression(
       spec.contract.methods.map((meth) => {
-        const [key, value] = generateTxnMethodImpl(meth, spec)
+        const [key, value] = generateComposeMethodImpl(meth, spec)
         return factory.createPropertyAssignment(key, value)
       }),
       true,
@@ -253,7 +253,6 @@ function generateMethodImpl(
 ): ts.ClassElement {
 
   const params: ts.ParameterDeclaration[] = [];
-  //const composeArgs: ts.Expression[] = [];
   const abiMethodArgs: ts.PropertyAssignment[] = [];
   const argParams: ts.PropertySignature[] = [];
 
@@ -302,12 +301,15 @@ function generateMethodImpl(
           factory.createIdentifier("undefined")
         ),
         factory.createToken(ts.SyntaxKind.QuestionToken),
-        factory.createAwaitExpression(
-          factory.createCallExpression(
-            factory.createIdentifier("this.resolve"),
-            undefined,
-            [factory.createStringLiteral(defaultArg.source), data]
-          )
+        factory.createAsExpression(
+          factory.createAwaitExpression(
+            factory.createCallExpression(
+              factory.createIdentifier("this.resolve"),
+              undefined,
+              [factory.createStringLiteral(defaultArg.source), data]
+            )
+          ),
+          argType
         ),
         factory.createToken(ts.SyntaxKind.ColonToken),
         argVal
@@ -472,7 +474,7 @@ function generateMethodImpl(
 
 // Creates the methods on the AppClient class used to call specific ABI methods to produce
 // the transactions, which are nested inside a `transactions` property.
-function generateTxnMethodImpl(
+function generateComposeMethodImpl(
   method: algosdk.ABIMethod,
   spec: AppSpec
 ): [string, ts.ArrowFunction] {
@@ -541,13 +543,13 @@ function generateTxnMethodImpl(
           factory.createIdentifier("undefined")
         ),
         factory.createToken(ts.SyntaxKind.QuestionToken),
-        factory.createAwaitExpression(
-          factory.createCallExpression(
-            factory.createIdentifier("this.resolve"),
-            undefined,
-            [factory.createStringLiteral(defaultArg.source), data]
-          )
-        ),
+          factory.createAwaitExpression(
+            factory.createCallExpression(
+              factory.createIdentifier("this.resolve"),
+              undefined,
+              [factory.createStringLiteral(defaultArg.source), data]
+            )
+          ),
         factory.createToken(ts.SyntaxKind.ColonToken),
         argVal
       );
