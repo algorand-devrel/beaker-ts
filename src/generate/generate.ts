@@ -5,63 +5,65 @@ import type {
   Hint,
   Schema,
   Struct,
-} from "./appspec";
+} from './appspec';
 
-import algosdk from "algosdk";
-import ts, { factory } from "typescript";
-import { writeFileSync } from "fs";
+import algosdk from 'algosdk';
+import ts, { factory } from 'typescript';
+import { writeFileSync } from 'fs';
 
 // AMAZING resource:
 // https://ts-ast-viewer.com/#
 
-const CLIENT_NAME = "bkr.ApplicationClient";
+const CLIENT_NAME = 'bkr.ApplicationClient';
 // TODO: only import if we _need_ them
 const CLIENT_IMPORTS = `* as bkr`;
-const CLIENT_PATH = "beaker-ts";
+const CLIENT_PATH = 'beaker-ts';
 
-const ALGOSDK_IMPORTS = "algosdk";
-const ALGOSDK_PATH = "algosdk";
+const ALGOSDK_IMPORTS = 'algosdk';
+const ALGOSDK_PATH = 'algosdk';
 
-const REF_TYPES: string[] = ["account", "application", "asset"];
+const REF_TYPES: string[] = ['account', 'application', 'asset'];
 
 const TXN_TYPES: string[] = [
-  "txn",
-  "pay",
-  "axfer",
-  "acfg",
-  "appl",
-  "keyreg",
-  "frz",
+  'txn',
+  'pay',
+  'axfer',
+  'acfg',
+  'appl',
+  'keyreg',
+  'frz',
 ];
 
-
 // native types
-const UINT8_ARRAY_IDENT = factory.createIdentifier("Uint8Array")
-const UINT8_ARRAY_TYPE = factory.createTypeReferenceNode(UINT8_ARRAY_IDENT)
+const UINT8_ARRAY_IDENT = factory.createIdentifier('Uint8Array');
+const UINT8_ARRAY_TYPE = factory.createTypeReferenceNode(UINT8_ARRAY_IDENT);
 
 // sdk types
-const ABI_METHOD_IDENT = factory.createIdentifier("algosdk.ABIMethod")
-const ABI_METHOD_TYPE = factory.createTypeReferenceNode( ABI_METHOD_IDENT)
-const ATC_IDENT = factory.createIdentifier("algosdk.AtomicTransactionComposer")
-const ATC_TYPE = factory.createTypeReferenceNode(ATC_IDENT)
+const ABI_METHOD_IDENT = factory.createIdentifier('algosdk.ABIMethod');
+const ABI_METHOD_TYPE = factory.createTypeReferenceNode(ABI_METHOD_IDENT);
+const ATC_IDENT = factory.createIdentifier('algosdk.AtomicTransactionComposer');
+const ATC_TYPE = factory.createTypeReferenceNode(ATC_IDENT);
 
 // bkr types
-const ABI_RESULT_IDENT = factory.createIdentifier("bkr.ABIResult")
-const DECODE_NAMED_TUPLE_IDENT = factory.createIdentifier("bkr.decodeNamedTuple")
-const SCHEMA_TYPE =  factory.createTypeReferenceNode("bkr.Schema")
-const TRANSACTION_OVERRIDES_TYPE = factory.createTypeReferenceNode("bkr.TransactionOverrides")
-
+const ABI_RESULT_IDENT = factory.createIdentifier('bkr.ABIResult');
+const DECODE_NAMED_TUPLE_IDENT = factory.createIdentifier(
+  'bkr.decodeNamedTuple',
+);
+const SCHEMA_TYPE = factory.createTypeReferenceNode('bkr.Schema');
+const TRANSACTION_OVERRIDES_TYPE = factory.createTypeReferenceNode(
+  'bkr.TransactionOverrides',
+);
 
 function tsTypeFromAbiType(argType: string | algosdk.ABIType): ts.TypeNode {
-  if (typeof argType === "string") {
+  if (typeof argType === 'string') {
     if (TXN_TYPES.includes(argType))
       return factory.createUnionTypeNode([
-        factory.createTypeReferenceNode("algosdk.TransactionWithSigner"),
-        factory.createTypeReferenceNode("algosdk.Transaction"),
+        factory.createTypeReferenceNode('algosdk.TransactionWithSigner'),
+        factory.createTypeReferenceNode('algosdk.Transaction'),
       ]);
 
     if (REF_TYPES.includes(argType)) {
-      if (["application", "asset"].includes(argType))
+      if (['application', 'asset'].includes(argType))
         return factory.createKeywordTypeNode(ts.SyntaxKind.BigIntKeyword);
 
       return factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword);
@@ -69,7 +71,7 @@ function tsTypeFromAbiType(argType: string | algosdk.ABIType): ts.TypeNode {
   }
 
   const abiType =
-    typeof argType === "string" ? algosdk.ABIType.from(argType) : argType;
+    typeof argType === 'string' ? algosdk.ABIType.from(argType) : argType;
   switch (abiType.constructor) {
     case algosdk.ABIByteType:
       return factory.createKeywordTypeNode(ts.SyntaxKind.NumberKeyword);
@@ -86,11 +88,11 @@ function tsTypeFromAbiType(argType: string | algosdk.ABIType): ts.TypeNode {
       switch (asStaticArr.childType.constructor) {
         // If its bytes, make it a uint8array
         case algosdk.ABIByteType:
-          return UINT8_ARRAY_TYPE
+          return UINT8_ARRAY_TYPE;
       }
 
       return factory.createArrayTypeNode(
-        tsTypeFromAbiType(asStaticArr.childType)
+        tsTypeFromAbiType(asStaticArr.childType),
       );
     case algosdk.ABIArrayDynamicType:
       const asArr = abiType as algosdk.ABIArrayStaticType;
@@ -98,7 +100,7 @@ function tsTypeFromAbiType(argType: string | algosdk.ABIType): ts.TypeNode {
       switch (asArr.childType.constructor) {
         // If its bytes, make it a uint8array
         case algosdk.ABIByteType:
-          return UINT8_ARRAY_TYPE
+          return UINT8_ARRAY_TYPE;
       }
 
       return factory.createArrayTypeNode(tsTypeFromAbiType(asArr.childType));
@@ -108,7 +110,7 @@ function tsTypeFromAbiType(argType: string | algosdk.ABIType): ts.TypeNode {
       return factory.createTupleTypeNode(
         asTuple.childTypes.map((elem: algosdk.ABIType) => {
           return tsTypeFromAbiType(elem);
-        })
+        }),
       );
   }
 
@@ -118,32 +120,28 @@ function tsTypeFromAbiType(argType: string | algosdk.ABIType): ts.TypeNode {
 function defaultValueFromTsType(t: ts.TypeNode): ts.Expression {
   switch (t.kind) {
     case ts.SyntaxKind.StringKeyword:
-      return factory.createStringLiteral("");
+      return factory.createStringLiteral('');
     case ts.SyntaxKind.NumberKeyword:
       return factory.createNumericLiteral(0);
     case ts.SyntaxKind.BigIntKeyword:
       return factory.createCallExpression(
-        factory.createIdentifier("BigInt"),
+        factory.createIdentifier('BigInt'),
         undefined,
-        [factory.createNumericLiteral("0")]
+        [factory.createNumericLiteral('0')],
       );
     case ts.SyntaxKind.BooleanKeyword:
-      return factory.createIdentifier("false");
+      return factory.createIdentifier('false');
     case ts.SyntaxKind.TypeReference:
-      return factory.createNewExpression(
-        UINT8_ARRAY_IDENT,
-        undefined,
-        []
-      );
+      return factory.createNewExpression(UINT8_ARRAY_IDENT, undefined, []);
   }
 
-  return factory.createIdentifier("undefined");
+  return factory.createIdentifier('undefined');
 }
 
 export function generateApplicationClient(
   appSpec: AppSpec,
   path: string,
-  beakerPath?: string
+  beakerPath?: string,
 ) {
   const name = appSpec.contract.name;
 
@@ -162,11 +160,11 @@ export function generateApplicationClient(
       factory.createNodeArray(nodes),
       ts.createSourceFile(
         name,
-        "",
+        '',
         ts.ScriptTarget.ESNext,
         true,
-        ts.ScriptKind.TS
-      )
+        ts.ScriptKind.TS,
+      ),
     );
 
   const file_name = `${name.toLowerCase()}_client.ts`;
@@ -183,10 +181,10 @@ function generateImports(beakerPath?: string): ts.ImportDeclaration[] {
       factory.createImportClause(
         false,
         factory.createIdentifier(ALGOSDK_IMPORTS),
-        undefined
+        undefined,
       ),
       factory.createStringLiteral(ALGOSDK_PATH),
-      undefined
+      undefined,
     ),
 
     // Import generic client
@@ -196,10 +194,10 @@ function generateImports(beakerPath?: string): ts.ImportDeclaration[] {
       factory.createImportClause(
         false,
         factory.createIdentifier(CLIENT_IMPORTS),
-        undefined
+        undefined,
       ),
       factory.createStringLiteral(beakerPath ? beakerPath : CLIENT_PATH),
-      undefined
+      undefined,
     ),
   ];
 }
@@ -214,17 +212,17 @@ function generateClass(appSpec: AppSpec): ts.ClassDeclaration {
       factory.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [
         factory.createExpressionWithTypeArguments(
           factory.createIdentifier(CLIENT_NAME),
-          undefined
+          undefined,
         ),
       ]),
     ],
     [
       ...generateContractProperties(appSpec),
       ...appSpec.contract.methods.map((meth) =>
-        generateMethodImpl(meth, appSpec)
+        generateMethodImpl(meth, appSpec),
       ),
       generateComposeMethods(appSpec),
-    ]
+    ],
   );
 }
 
@@ -233,25 +231,24 @@ function generateComposeMethods(spec: AppSpec): ts.ClassElement {
   return factory.createPropertyDeclaration(
     undefined,
     undefined,
-    factory.createIdentifier("compose"),
+    factory.createIdentifier('compose'),
     undefined,
     undefined,
     factory.createObjectLiteralExpression(
       spec.contract.methods.map((meth) => {
-        const [key, value] = generateComposeMethodImpl(meth, spec)
-        return factory.createPropertyAssignment(key, value)
+        const [key, value] = generateComposeMethodImpl(meth, spec);
+        return factory.createPropertyAssignment(key, value);
       }),
       true,
     ),
   );
 }
 
-// Creates the methods on the AppClient class used to call specific ABI methods 
+// Creates the methods on the AppClient class used to call specific ABI methods
 function generateMethodImpl(
   method: algosdk.ABIMethod,
-  spec: AppSpec
+  spec: AppSpec,
 ): ts.ClassElement {
-
   const params: ts.ParameterDeclaration[] = [];
   const abiMethodArgs: ts.PropertyAssignment[] = [];
   const argParams: ts.PropertySignature[] = [];
@@ -284,35 +281,35 @@ function generateMethodImpl(
     let argVal: ts.Expression = factory.createIdentifier(`args.${arg.name}`);
     if (defaultArg !== undefined) {
       let data: ts.Expression;
-      if (typeof defaultArg.data == "string") {
+      if (typeof defaultArg.data == 'string') {
         data = factory.createStringLiteral(defaultArg.data);
-      } else if (typeof defaultArg.data == "bigint") {
+      } else if (typeof defaultArg.data == 'bigint') {
         data = factory.createBigIntLiteral(defaultArg.data.toString());
-      } else if (typeof defaultArg.data == "number") {
+      } else if (typeof defaultArg.data == 'number') {
         data = factory.createNumericLiteral(defaultArg.data);
       } else {
-        data = factory.createIdentifier("undefined");
+        data = factory.createIdentifier('undefined');
       }
 
       argVal = factory.createConditionalExpression(
         factory.createBinaryExpression(
           argVal,
           factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
-          factory.createIdentifier("undefined")
+          factory.createIdentifier('undefined'),
         ),
         factory.createToken(ts.SyntaxKind.QuestionToken),
         factory.createAsExpression(
           factory.createAwaitExpression(
             factory.createCallExpression(
-              factory.createIdentifier("this.resolve"),
+              factory.createIdentifier('this.resolve'),
               undefined,
-              [factory.createStringLiteral(defaultArg.source), data]
-            )
+              [factory.createStringLiteral(defaultArg.source), data],
+            ),
           ),
-          argType
+          argType,
         ),
         factory.createToken(ts.SyntaxKind.ColonToken),
-        argVal
+        argVal,
       );
     }
 
@@ -325,27 +322,27 @@ function generateMethodImpl(
 
     //factory.createPropertyDeclaration
     argParams.push(
-      factory.createPropertySignature(undefined, arg.name, optional, argType)
+      factory.createPropertySignature(undefined, arg.name, optional, argType),
     );
   }
 
   // Expect args
-  if(argParams.length>0){
+  if (argParams.length > 0) {
     params.push(
       factory.createParameterDeclaration(
         undefined,
         undefined,
         undefined,
-        factory.createIdentifier("args"),
+        factory.createIdentifier('args'),
         undefined,
-        factory.createTypeLiteralNode(argParams)
-      )
+        factory.createTypeLiteralNode(argParams),
+      ),
     );
   }
 
   // Any tx overrides
 
-  const txnParams = factory.createIdentifier("txnParams");
+  const txnParams = factory.createIdentifier('txnParams');
   params.push(
     factory.createParameterDeclaration(
       undefined,
@@ -354,67 +351,71 @@ function generateMethodImpl(
       txnParams,
       factory.createToken(ts.SyntaxKind.QuestionToken),
       TRANSACTION_OVERRIDES_TYPE,
-    )
+    ),
   );
 
   // Set up return type
   let abiRetType: ts.TypeNode = factory.createKeywordTypeNode(
-    ts.SyntaxKind.VoidKeyword
+    ts.SyntaxKind.VoidKeyword,
   );
-  let resultArgs: ts.Expression[] = [factory.createIdentifier("result")];
+  const resultArgs: ts.Expression[] = [factory.createIdentifier('result')];
 
-  if (method.returns.type.toString() !== "void") {
+  if (method.returns.type.toString() !== 'void') {
     abiRetType = tsTypeFromAbiType(method.returns.type.toString());
     // Always `output` here because pyteal,
     // when others app specs come in we should consider them
     if (
       hint !== undefined &&
       hint?.structs !== undefined &&
-      "output" in hint.structs
+      'output' in hint.structs
     ) {
-      const outputHint = hint.structs["output"];
+      const outputHint = hint.structs['output'];
       if (outputHint !== undefined) {
         abiRetType = factory.createTypeReferenceNode(outputHint?.name);
         resultArgs.push(
           factory.createCallExpression(
             factory.createPropertyAccessExpression(
               factory.createIdentifier(outputHint.name),
-              factory.createIdentifier("decodeResult")
+              factory.createIdentifier('decodeResult'),
             ),
             undefined,
             [
               factory.createPropertyAccessExpression(
-                factory.createIdentifier("result"),
-                factory.createIdentifier("returnValue")
+                factory.createIdentifier('result'),
+                factory.createIdentifier('returnValue'),
               ),
-            ]
-          )
+            ],
+          ),
         );
       }
     } else {
       resultArgs.push(
         factory.createAsExpression(
           factory.createPropertyAccessExpression(
-            factory.createIdentifier("result"),
-            factory.createIdentifier("returnValue")
+            factory.createIdentifier('result'),
+            factory.createIdentifier('returnValue'),
           ),
-          abiRetType
-        )
+          abiRetType,
+        ),
       );
     }
   }
 
   const composeArgs: ts.Expression[] = [];
 
-  if(argParams.length>0){
-    composeArgs.push(factory.createObjectLiteralExpression(abiMethodArgs))
+  if (argParams.length > 0) {
+    composeArgs.push(factory.createObjectLiteralExpression(abiMethodArgs));
   }
 
-  composeArgs.push(txnParams)
+  composeArgs.push(txnParams);
 
-  const composeExpr =  factory.createAwaitExpression(
-    factory.createCallExpression(factory.createIdentifier("this.compose."+method.name), undefined, composeArgs)
-  )
+  const composeExpr = factory.createAwaitExpression(
+    factory.createCallExpression(
+      factory.createIdentifier('this.compose.' + method.name),
+      undefined,
+      composeArgs,
+    ),
+  );
 
   const body = factory.createBlock(
     [
@@ -423,38 +424,34 @@ function generateMethodImpl(
         factory.createVariableDeclarationList(
           [
             factory.createVariableDeclaration(
-              factory.createIdentifier("result"),
+              factory.createIdentifier('result'),
               undefined,
               undefined,
               factory.createAwaitExpression(
                 factory.createCallExpression(
                   factory.createPropertyAccessExpression(
                     factory.createThis(),
-                    factory.createIdentifier("execute")
+                    factory.createIdentifier('execute'),
                   ),
                   undefined,
-                  [ composeExpr ]
-                )
-              )
+                  [composeExpr],
+                ),
+              ),
             ),
           ],
-          ts.NodeFlags.Const
-        )
+          ts.NodeFlags.Const,
+        ),
       ),
       factory.createReturnStatement(
-        factory.createNewExpression(
-          ABI_RESULT_IDENT, [abiRetType], resultArgs
-        )
+        factory.createNewExpression(ABI_RESULT_IDENT, [abiRetType], resultArgs),
       ),
     ],
-    true
+    true,
   );
 
-  let retType = factory.createTypeReferenceNode(
-    factory.createIdentifier("Promise"),
-    [
-      factory.createTypeReferenceNode(ABI_RESULT_IDENT, [abiRetType]),
-    ]
+  const retType = factory.createTypeReferenceNode(
+    factory.createIdentifier('Promise'),
+    [factory.createTypeReferenceNode(ABI_RESULT_IDENT, [abiRetType])],
   );
 
   const methodSpec = factory.createMethodDeclaration(
@@ -466,7 +463,7 @@ function generateMethodImpl(
     undefined,
     params,
     retType,
-    body
+    body,
   );
 
   return methodSpec;
@@ -476,9 +473,8 @@ function generateMethodImpl(
 // the transactions, which are nested inside a `transactions` property.
 function generateComposeMethodImpl(
   method: algosdk.ABIMethod,
-  spec: AppSpec
+  spec: AppSpec,
 ): [string, ts.ArrowFunction] {
-
   const params: ts.ParameterDeclaration[] = [];
   const callArgs: ts.Expression[] = [];
   const abiMethodArgs: ts.PropertyAssignment[] = [];
@@ -489,20 +485,22 @@ function generateComposeMethodImpl(
 
   callArgs.push(
     factory.createCallExpression(
-      factory.createIdentifier("algosdk.getMethodByName"), 
+      factory.createIdentifier('algosdk.getMethodByName'),
       undefined,
       [
         factory.createPropertyAccessExpression(
           factory.createThis(),
-          factory.createIdentifier("methods")
+          factory.createIdentifier('methods'),
         ),
         factory.createStringLiteral(method.name),
-      ]
-    )
+      ],
+    ),
   );
 
   for (const arg of method.args) {
-    if (arg.name === undefined) continue;
+    if (arg.name === undefined) {
+      continue;
+    }
 
     const argName: ts.Identifier = factory.createIdentifier(arg.name);
 
@@ -526,32 +524,32 @@ function generateComposeMethodImpl(
     let argVal: ts.Expression = factory.createIdentifier(`args.${arg.name}`);
     if (defaultArg !== undefined) {
       let data: ts.Expression;
-      if (typeof defaultArg.data == "string") {
+      if (typeof defaultArg.data == 'string') {
         data = factory.createStringLiteral(defaultArg.data);
-      } else if (typeof defaultArg.data == "bigint") {
+      } else if (typeof defaultArg.data == 'bigint') {
         data = factory.createBigIntLiteral(defaultArg.data.toString());
-      } else if (typeof defaultArg.data == "number") {
+      } else if (typeof defaultArg.data == 'number') {
         data = factory.createNumericLiteral(defaultArg.data);
       } else {
-        data = factory.createIdentifier("undefined");
+        data = factory.createIdentifier('undefined');
       }
 
       argVal = factory.createConditionalExpression(
         factory.createBinaryExpression(
           argVal,
           factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
-          factory.createIdentifier("undefined")
+          factory.createIdentifier('undefined'),
         ),
         factory.createToken(ts.SyntaxKind.QuestionToken),
-          factory.createAwaitExpression(
-            factory.createCallExpression(
-              factory.createIdentifier("this.resolve"),
-              undefined,
-              [factory.createStringLiteral(defaultArg.source), data]
-            )
+        factory.createAwaitExpression(
+          factory.createCallExpression(
+            factory.createIdentifier('this.resolve'),
+            undefined,
+            [factory.createStringLiteral(defaultArg.source), data],
           ),
+        ),
         factory.createToken(ts.SyntaxKind.ColonToken),
-        argVal
+        argVal,
       );
     }
 
@@ -563,25 +561,25 @@ function generateComposeMethodImpl(
         : undefined;
 
     argParams.push(
-      factory.createPropertySignature(undefined, arg.name, optional, argType)
+      factory.createPropertySignature(undefined, arg.name, optional, argType),
     );
   }
 
   // Expect args
-  if(argParams.length>0){
+  if (argParams.length > 0) {
     params.push(
       factory.createParameterDeclaration(
         undefined,
         undefined,
         undefined,
-        factory.createIdentifier("args"),
+        factory.createIdentifier('args'),
         undefined,
-        factory.createTypeLiteralNode(argParams)
-      )
+        factory.createTypeLiteralNode(argParams),
+      ),
     );
   }
 
-  const txnParams = factory.createIdentifier("txnParams");
+  const txnParams = factory.createIdentifier('txnParams');
   params.push(
     factory.createParameterDeclaration(
       undefined,
@@ -590,10 +588,10 @@ function generateComposeMethodImpl(
       txnParams,
       factory.createToken(ts.SyntaxKind.QuestionToken),
       TRANSACTION_OVERRIDES_TYPE,
-    )
+    ),
   );
 
-  const atcParam = factory.createIdentifier("atc");
+  const atcParam = factory.createIdentifier('atc');
   params.push(
     factory.createParameterDeclaration(
       undefined,
@@ -602,7 +600,7 @@ function generateComposeMethodImpl(
       atcParam,
       factory.createToken(ts.SyntaxKind.QuestionToken),
       ATC_TYPE,
-    )
+    ),
   );
 
   const body = factory.createBlock(
@@ -611,7 +609,7 @@ function generateComposeMethodImpl(
         factory.createCallExpression(
           factory.createPropertyAccessExpression(
             factory.createThis(),
-            factory.createIdentifier("addMethodCall")
+            factory.createIdentifier('addMethodCall'),
           ),
           undefined,
           [
@@ -619,18 +617,16 @@ function generateComposeMethodImpl(
             factory.createObjectLiteralExpression(abiMethodArgs),
             txnParams,
             atcParam,
-          ]
-        )
-      )
+          ],
+        ),
+      ),
     ],
-    true
+    true,
   );
 
-  let retType = factory.createTypeReferenceNode(
-    factory.createIdentifier("Promise"),
-    [
-      factory.createTypeReferenceNode(ATC_IDENT),
-    ]
+  const retType = factory.createTypeReferenceNode(
+    factory.createIdentifier('Promise'),
+    [factory.createTypeReferenceNode(ATC_IDENT)],
   );
 
   const fncSpec = factory.createArrowFunction(
@@ -642,7 +638,6 @@ function generateComposeMethodImpl(
     body,
   );
 
-
   return [method.name, fncSpec];
 }
 
@@ -653,18 +648,18 @@ function copySchemaObject(so: Schema): ts.Expression {
         factory.createIdentifier(sv[0]),
         factory.createObjectLiteralExpression([
           factory.createPropertyAssignment(
-            factory.createIdentifier("type"),
-            factory.createIdentifier(`bkr.AVMType.${sv[1].type}`)
+            factory.createIdentifier('type'),
+            factory.createIdentifier(`bkr.AVMType.${sv[1].type}`),
           ),
-          objStrProperty("key", sv[1].key),
-          objStrProperty("desc", sv[1].desc),
+          objStrProperty('key', sv[1].key),
+          objStrProperty('desc', sv[1].desc),
           factory.createPropertyAssignment(
-            factory.createIdentifier("static"),
-            sv[1].static ? factory.createTrue() : factory.createFalse()
+            factory.createIdentifier('static'),
+            sv[1].static ? factory.createTrue() : factory.createFalse(),
           ),
-        ])
+        ]),
       );
-    }
+    },
   );
 
   const dynamicAppSchemaProps = Object.entries(so.dynamic).map(
@@ -673,27 +668,27 @@ function copySchemaObject(so: Schema): ts.Expression {
         factory.createIdentifier(sv[0]),
         factory.createObjectLiteralExpression([
           factory.createPropertyAssignment(
-            factory.createIdentifier("type"),
-            factory.createIdentifier(`bkr.AVMType.${sv[1].type.toString()}`)
+            factory.createIdentifier('type'),
+            factory.createIdentifier(`bkr.AVMType.${sv[1].type.toString()}`),
           ),
-          objStrProperty("desc", sv[1].desc),
+          objStrProperty('desc', sv[1].desc),
           factory.createPropertyAssignment(
-            factory.createIdentifier("max_keys"),
-            factory.createNumericLiteral(sv[1].max_keys ? sv[1].max_keys : 0)
+            factory.createIdentifier('max_keys'),
+            factory.createNumericLiteral(sv[1].max_keys ? sv[1].max_keys : 0),
           ),
-        ])
+        ]),
       );
-    }
+    },
   );
 
   return factory.createObjectLiteralExpression([
     factory.createPropertyAssignment(
-      factory.createIdentifier("declared"),
-      factory.createObjectLiteralExpression(declaredAppSchemaProps)
+      factory.createIdentifier('declared'),
+      factory.createObjectLiteralExpression(declaredAppSchemaProps),
     ),
     factory.createPropertyAssignment(
-      factory.createIdentifier("dynamic"),
-      factory.createObjectLiteralExpression(dynamicAppSchemaProps)
+      factory.createIdentifier('dynamic'),
+      factory.createObjectLiteralExpression(dynamicAppSchemaProps),
     ),
   ]);
 }
@@ -735,8 +730,8 @@ function generateStruct(s: Struct): ts.ClassDeclaration {
         factory.createIdentifier(elem[0]),
         undefined,
         tsType,
-        defaultValueFromTsType(tsType)
-      )
+        defaultValueFromTsType(tsType),
+      ),
     );
   }
 
@@ -744,41 +739,41 @@ function generateStruct(s: Struct): ts.ClassDeclaration {
     factory.createPropertyDeclaration(
       undefined,
       [factory.createModifier(ts.SyntaxKind.StaticKeyword)],
-      factory.createIdentifier("codec"),
+      factory.createIdentifier('codec'),
       undefined,
       factory.createTypeReferenceNode(
         factory.createQualifiedName(
-          factory.createIdentifier("algosdk"),
-          factory.createIdentifier("ABIType")
+          factory.createIdentifier('algosdk'),
+          factory.createIdentifier('ABIType'),
         ),
-        undefined
+        undefined,
       ),
       factory.createCallExpression(
         factory.createPropertyAccessExpression(
           factory.createPropertyAccessExpression(
-            factory.createIdentifier("algosdk"),
-            factory.createIdentifier("ABIType")
+            factory.createIdentifier('algosdk'),
+            factory.createIdentifier('ABIType'),
           ),
-          factory.createIdentifier("from")
+          factory.createIdentifier('from'),
         ),
         undefined,
-        [factory.createStringLiteral(`(${tupleTypes.join(",")})`)]
-      )
-    )
+        [factory.createStringLiteral(`(${tupleTypes.join(',')})`)],
+      ),
+    ),
   );
   members.push(
     factory.createPropertyDeclaration(
       undefined,
       [factory.createModifier(ts.SyntaxKind.StaticKeyword)],
-      factory.createIdentifier("fields"),
+      factory.createIdentifier('fields'),
       undefined,
-      factory.createTypeReferenceNode("string[]"),
+      factory.createTypeReferenceNode('string[]'),
       factory.createArrayLiteralExpression(
         tupleNames.map((name) => {
           return factory.createStringLiteral(name);
-        })
-      )
-    )
+        }),
+      ),
+    ),
   );
 
   members.push(
@@ -787,7 +782,7 @@ function generateStruct(s: Struct): ts.ClassDeclaration {
       undefined,
       [factory.createModifier(ts.SyntaxKind.StaticKeyword)],
       undefined,
-      factory.createIdentifier("decodeResult"),
+      factory.createIdentifier('decodeResult'),
       undefined,
       undefined,
       [
@@ -795,24 +790,24 @@ function generateStruct(s: Struct): ts.ClassDeclaration {
           undefined,
           undefined,
           undefined,
-          factory.createIdentifier("val"),
+          factory.createIdentifier('val'),
           undefined,
           factory.createUnionTypeNode([
             factory.createTypeReferenceNode(
               factory.createQualifiedName(
-                factory.createIdentifier("algosdk"),
-                factory.createIdentifier("ABIValue")
+                factory.createIdentifier('algosdk'),
+                factory.createIdentifier('ABIValue'),
               ),
-              undefined
+              undefined,
             ),
-            factory.createTypeReferenceNode("undefined"),
+            factory.createTypeReferenceNode('undefined'),
           ]),
-          undefined
+          undefined,
         ),
       ],
       factory.createTypeReferenceNode(
         factory.createIdentifier(s.name),
-        undefined
+        undefined,
       ),
       factory.createBlock(
         [
@@ -822,23 +817,23 @@ function generateStruct(s: Struct): ts.ClassDeclaration {
                 DECODE_NAMED_TUPLE_IDENT,
                 undefined,
                 [
-                  factory.createIdentifier("val"),
+                  factory.createIdentifier('val'),
                   factory.createPropertyAccessExpression(
                     factory.createIdentifier(s.name),
-                    factory.createIdentifier("fields")
+                    factory.createIdentifier('fields'),
                   ),
-                ]
+                ],
               ),
               factory.createTypeReferenceNode(
                 factory.createIdentifier(s.name),
-                undefined
-              )
-            )
+                undefined,
+              ),
+            ),
           ),
         ],
-        true
-      )
-    )
+        true,
+      ),
+    ),
   );
 
   members.push(
@@ -846,7 +841,7 @@ function generateStruct(s: Struct): ts.ClassDeclaration {
       undefined,
       [factory.createModifier(ts.SyntaxKind.StaticKeyword)],
       undefined,
-      factory.createIdentifier("decodeBytes"),
+      factory.createIdentifier('decodeBytes'),
       undefined,
       undefined,
       [
@@ -854,15 +849,15 @@ function generateStruct(s: Struct): ts.ClassDeclaration {
           undefined,
           undefined,
           undefined,
-          factory.createIdentifier("val"),
+          factory.createIdentifier('val'),
           undefined,
           UINT8_ARRAY_TYPE,
-          undefined
+          undefined,
         ),
       ],
       factory.createTypeReferenceNode(
         factory.createIdentifier(s.name),
-        undefined
+        undefined,
       ),
       factory.createBlock(
         [
@@ -876,29 +871,29 @@ function generateStruct(s: Struct): ts.ClassDeclaration {
                     factory.createPropertyAccessExpression(
                       factory.createPropertyAccessExpression(
                         factory.createIdentifier(s.name),
-                        factory.createIdentifier("codec")
+                        factory.createIdentifier('codec'),
                       ),
-                      factory.createIdentifier("decode")
+                      factory.createIdentifier('decode'),
                     ),
                     undefined,
-                    [factory.createIdentifier("val")]
+                    [factory.createIdentifier('val')],
                   ),
                   factory.createPropertyAccessExpression(
                     factory.createIdentifier(s.name),
-                    factory.createIdentifier("fields")
+                    factory.createIdentifier('fields'),
                   ),
-                ]
+                ],
               ),
               factory.createTypeReferenceNode(
                 factory.createIdentifier(s.name),
-                undefined
-              )
-            )
+                undefined,
+              ),
+            ),
           ),
         ],
-        true
-      )
-    )
+        true,
+      ),
+    ),
   );
 
   return factory.createClassDeclaration(
@@ -907,7 +902,7 @@ function generateStruct(s: Struct): ts.ClassDeclaration {
     factory.createIdentifier(s.name),
     undefined,
     undefined,
-    members
+    members,
   );
 }
 
@@ -921,101 +916,96 @@ function generateContractProperties(spec: AppSpec): ts.PropertyDeclaration[] {
   const descrProp = factory.createPropertyDeclaration(
     undefined,
     undefined,
-    factory.createIdentifier("desc"),
+    factory.createIdentifier('desc'),
     undefined,
     factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
-    factory.createStringLiteral(descr ? descr : "")
+    factory.createStringLiteral(descr ? descr : ''),
   );
 
   // Create approval program property
-  let approvalProp
-  if(source.approval !== undefined){
+  let approvalProp;
+  if (source.approval !== undefined) {
     approvalProp = factory.createPropertyDeclaration(
       undefined,
       [factory.createModifier(ts.SyntaxKind.OverrideKeyword)],
-      factory.createIdentifier("approvalProgram"),
+      factory.createIdentifier('approvalProgram'),
       undefined,
       factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
-      factory.createStringLiteral(source.approval)
+      factory.createStringLiteral(source.approval),
     );
   }
 
   // Create clear program property
-  let clearProp
-  if(source.clear !== undefined){
+  let clearProp;
+  if (source.clear !== undefined) {
     clearProp = factory.createPropertyDeclaration(
       undefined,
       [factory.createModifier(ts.SyntaxKind.OverrideKeyword)],
-      factory.createIdentifier("clearProgram"),
+      factory.createIdentifier('clearProgram'),
       undefined,
       factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
-      factory.createStringLiteral(source.clear)
+      factory.createStringLiteral(source.clear),
     );
   }
 
   // Create App Schema Property
-  let appSchemaProp
-  if(schema.global !== undefined){
+  let appSchemaProp;
+  if (schema.global !== undefined) {
     appSchemaProp = factory.createPropertyDeclaration(
       undefined,
       [factory.createModifier(ts.SyntaxKind.OverrideKeyword)],
-      factory.createIdentifier("appSchema"),
+      factory.createIdentifier('appSchema'),
       undefined,
       SCHEMA_TYPE,
-      copySchemaObject(schema.global)
+      copySchemaObject(schema.global),
     );
   }
 
   // Create Acct schema property
-  let acctSchemaProp
-  if(schema.local !== undefined) {
+  let acctSchemaProp;
+  if (schema.local !== undefined) {
     acctSchemaProp = factory.createPropertyDeclaration(
       undefined,
       [factory.createModifier(ts.SyntaxKind.OverrideKeyword)],
-      factory.createIdentifier("acctSchema"),
+      factory.createIdentifier('acctSchema'),
       undefined,
       SCHEMA_TYPE,
-      copySchemaObject(schema.local)
+      copySchemaObject(schema.local),
     );
   }
 
   // Add methods
   const methodAssignments: ts.Expression[] = [];
   for (const meth of methods) {
-
     const argObjs: ts.ObjectLiteralExpression[] = meth.args.map((arg) => {
       return factory.createObjectLiteralExpression([
-        objStrProperty("type", arg.type.toString()),
-        objStrProperty("name", arg.name),
-        objStrProperty("desc", arg.description)
+        objStrProperty('type', arg.type.toString()),
+        objStrProperty('name', arg.name),
+        objStrProperty('desc', arg.description),
       ]);
     });
 
     const returnObj = factory.createObjectLiteralExpression([
-      objStrProperty("type", meth.returns.type.toString()),
-      objStrProperty("desc", meth.returns.description)
+      objStrProperty('type', meth.returns.type.toString()),
+      objStrProperty('desc', meth.returns.description),
     ]);
 
-    // Create ABIMethod object 
+    // Create ABIMethod object
     methodAssignments.push(
-      factory.createNewExpression(
-        ABI_METHOD_IDENT,
-        undefined,
-        [
-          factory.createObjectLiteralExpression([
-            objStrProperty("name", meth.name),
-            objStrProperty("desc", meth.description),
-            factory.createPropertyAssignment(
-              factory.createIdentifier("args"),
-              factory.createArrayLiteralExpression(argObjs)
-            ),
-            factory.createPropertyAssignment(
-              factory.createIdentifier("returns"),
-              returnObj
-            ),
-          ]),
-        ]
-      )
+      factory.createNewExpression(ABI_METHOD_IDENT, undefined, [
+        factory.createObjectLiteralExpression([
+          objStrProperty('name', meth.name),
+          objStrProperty('desc', meth.description),
+          factory.createPropertyAssignment(
+            factory.createIdentifier('args'),
+            factory.createArrayLiteralExpression(argObjs),
+          ),
+          factory.createPropertyAssignment(
+            factory.createIdentifier('returns'),
+            returnObj,
+          ),
+        ]),
+      ]),
     );
   }
 
@@ -1023,27 +1013,29 @@ function generateContractProperties(spec: AppSpec): ts.PropertyDeclaration[] {
   const methodProps = factory.createPropertyDeclaration(
     undefined,
     [factory.createModifier(ts.SyntaxKind.OverrideKeyword)],
-    factory.createIdentifier("methods"),
+    factory.createIdentifier('methods'),
     undefined,
     factory.createArrayTypeNode(ABI_METHOD_TYPE),
-    factory.createArrayLiteralExpression(methodAssignments, true)
+    factory.createArrayLiteralExpression(methodAssignments, true),
   );
 
-  const props = [descrProp]
-  if(appSchemaProp !== undefined) props.push(appSchemaProp)
-  if(acctSchemaProp !== undefined) props.push(acctSchemaProp)
-  if(approvalProp !== undefined) props.push(approvalProp)
-  if(clearProp !== undefined) props.push(clearProp)
-  props.push(methodProps)
+  const props = [descrProp];
+  if (appSchemaProp !== undefined) props.push(appSchemaProp);
+  if (acctSchemaProp !== undefined) props.push(acctSchemaProp);
+  if (approvalProp !== undefined) props.push(approvalProp);
+  if (clearProp !== undefined) props.push(clearProp);
+  props.push(methodProps);
 
-  return props
+  return props;
 }
 
-
-function objStrProperty(k: string, v: string | undefined): ts.PropertyAssignment {
-  const val = v===undefined?"":v
+function objStrProperty(
+  k: string,
+  v: string | undefined,
+): ts.PropertyAssignment {
+  const val = v === undefined ? '' : v;
   return factory.createPropertyAssignment(
-        factory.createIdentifier(k),
-        factory.createStringLiteral(val)
-  )
+    factory.createIdentifier(k),
+    factory.createStringLiteral(val),
+  );
 }
