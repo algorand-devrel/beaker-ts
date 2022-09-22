@@ -16,7 +16,9 @@
     "amm": "npx ts-node examples/amm/index.ts",
     "genavm7": "npm run beaker -- generate --local examples/demo_avm7/demo_avm7.json examples/demo_avm7/",
     "avm7": "npx ts-node examples/demo_avm7/index.ts",
-    "regen": "npm run genhello && npm run genstructer && npm run genopup && npm run genavm7 && npm run genamm"
+    "regen": "npm run genhello && npm run genstructer && npm run genopup && npm run genavm7 && npm run genamm",
+    "lint": "eslint \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\""
   },
   "bin": {
     "beaker": "./lib/beaker.js"
