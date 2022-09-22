@@ -12,6 +12,11 @@ export type MethodArg =
 export type MethodArgs = Record<string, MethodArg>;
 export type ABIReturnType = object | void | algosdk.ABIValue;
 export type TransactionOverrides = Partial<algosdk.TransactionParams>;
+export type TransactionResult = {
+  confirmedRound: number;
+  txIDs: string[];
+  methodResults: algosdk.ABIResult[];
+};
 
 export function decodeNamedTuple(
   v: algosdk.ABIValue | undefined,
@@ -39,7 +44,7 @@ export class ABIResult<T extends ABIReturnType> {
   txID: string;
   rawReturnValue: Uint8Array;
   method: algosdk.ABIMethod;
-  txInfo: Record<string, any> | undefined;
+  txInfo: Record<string, unknown> | undefined;
   returnValue: algosdk.ABIValue | undefined;
   decodeError: Error | undefined;
 
@@ -58,6 +63,8 @@ export class ABIResult<T extends ABIReturnType> {
     if (result?.txInfo !== undefined && 'inner-txns' in result.txInfo) {
       // TODO: this only parses 1 level deep
       const outer = result.txInfo['txn']['txn'] as algosdk.EncodedTransaction;
+
+      // eslint-disable-next-line
       this.inners = result.txInfo['inner-txns'].map((itxn: any) => {
         const et = itxn['txn']['txn'] as algosdk.EncodedTransaction;
         et.gen = outer.gen;
@@ -127,7 +134,7 @@ export class ApplicationClient {
     ];
   }
 
-  private async ensurePrograms() {
+  private async ensurePrograms(): Promise<void> {
     if (this.approvalProgram === undefined || this.clearProgram === undefined)
       throw Error('no approval or clear program defined');
 
@@ -194,7 +201,7 @@ export class ApplicationClient {
     }
   }
 
-  async delete(txParams?: TransactionOverrides) {
+  async delete(txParams?: TransactionOverrides): Promise<TransactionResult> {
     if (this.signer === undefined) throw Error('no signer defined');
 
     const sp = await this.getSuggestedParams(txParams);
@@ -212,13 +219,13 @@ export class ApplicationClient {
     });
 
     try {
-      return await atc.execute(this.client, 4);
+      return atc.execute(this.client, 4);
     } catch (e) {
       throw this.wrapLogicError(e as Error);
     }
   }
 
-  async update(txParams?: TransactionOverrides) {
+  async update(txParams?: TransactionOverrides): Promise<TransactionResult> {
     await this.ensurePrograms();
 
     if (
@@ -251,7 +258,7 @@ export class ApplicationClient {
     }
   }
 
-  async optIn(txParams?: TransactionOverrides) {
+  async optIn(txParams?: TransactionOverrides): Promise<TransactionResult> {
     if (this.signer === undefined) throw Error('no signer defined');
 
     const sp = await this.getSuggestedParams(txParams);
@@ -274,7 +281,7 @@ export class ApplicationClient {
     }
   }
 
-  async closeOut(txParams?: TransactionOverrides) {
+  async closeOut(txParams?: TransactionOverrides): Promise<TransactionResult> {
     if (this.signer === undefined) throw Error('no signer defined');
 
     const sp = await this.getSuggestedParams(txParams);
@@ -297,7 +304,9 @@ export class ApplicationClient {
     }
   }
 
-  async clearState(txParams?: TransactionOverrides) {
+  async clearState(
+    txParams?: TransactionOverrides,
+  ): Promise<TransactionResult> {
     if (this.signer === undefined) throw Error('no signer defined');
 
     const sp = await this.getSuggestedParams(txParams);

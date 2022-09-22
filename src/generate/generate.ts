@@ -142,7 +142,7 @@ export function generateApplicationClient(
   appSpec: AppSpec,
   path: string,
   beakerPath?: string,
-) {
+): void {
   const name = appSpec.contract.name;
 
   const nodes: ts.Node[] = generateImports(beakerPath);
