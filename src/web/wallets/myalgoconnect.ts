@@ -1,5 +1,6 @@
 import algosdk, { Transaction } from "algosdk";
-import { PermissionCallback, SignedTxn, Wallet } from "./wallet";
+import  { PermissionCallback, SignedTxn, Wallet } from "./wallet";
+// @ts-ignore
 import MyAlgo from "@randlabs/myalgo-connect";
 
 const logoInverted =
@@ -14,29 +15,25 @@ const logo =
     https://connect.myalgo.com/docs/getting-started/important-considerations#browser-events-and-blocked-popups
 */
 
-class MyAlgoConnectWallet implements Wallet {
-  accounts: string[];
-  defaultAccount: number;
-  network: string;
-  permissionCallback?: PermissionCallback;
+class MyAlgoConnectWallet extends Wallet {
+  override permissionCallback?: PermissionCallback;
 
   walletConn: MyAlgo;
 
   constructor() {
-    this.accounts = [];
-    this.defaultAccount = 0;
-
+    super()
     this.walletConn = new MyAlgo();
   }
 
-  static displayName(): string {
+  static override displayName(): string {
     return "My Algo";
   }
+
   displayName(): string {
     return MyAlgoConnectWallet.displayName();
   }
 
-  static img(inverted: boolean): string {
+  static override img(inverted: boolean): string {
     return inverted ? logoInverted : logo;
   }
 
@@ -44,12 +41,12 @@ class MyAlgoConnectWallet implements Wallet {
     return MyAlgoConnectWallet.img(inverted);
   }
 
-  async connect(): Promise<boolean> {
+  override async connect(): Promise<boolean> {
     if (this.isConnected()) return true;
 
     try {
       const accounts = await this.walletConn.connect();
-      this.accounts = accounts.map((account) => account.address);
+      this.accounts = accounts.map((account: {address: string}) => account.address);
     } catch (err) {
       return false;
     }
@@ -57,18 +54,10 @@ class MyAlgoConnectWallet implements Wallet {
     return true;
   }
 
-  isConnected(): boolean {
-    return this.accounts && this.accounts.length > 0;
-  }
-
-  disconnect() {
+  override disconnect() {
     /* noop */
   }
 
-  getDefaultAccount(): string {
-    if (!this.isConnected()) return "";
-    return this.accounts[this.defaultAccount];
-  }
 
   async doSign(defaultAcct: string, txns: Transaction[]): Promise<SignedTxn[]> {
     const unsigned = [];
@@ -77,6 +66,8 @@ class MyAlgoConnectWallet implements Wallet {
       if (!txns[tidx]) continue;
 
       const txn = txns[tidx];
+      if (txn === undefined)  continue;
+
       if (algosdk.encodeAddress(txn.from.publicKey) === defaultAcct) {
         signedTxns.push(unsigned.length);
         unsigned.push(txn.toByte());
@@ -95,6 +86,7 @@ class MyAlgoConnectWallet implements Wallet {
 
   async signTxn(txns: Transaction[]): Promise<SignedTxn[]> {
     const defaultAcct = this.getDefaultAccount();
+    if(defaultAcct === undefined) return []
 
     if (this.permissionCallback) {
       return await this.permissionCallback.request({
@@ -110,19 +102,6 @@ class MyAlgoConnectWallet implements Wallet {
     return await this.doSign(defaultAcct, txns);
   }
 
-  signBytes(
-    b: Uint8Array,
-    permissionCallback?: PermissionCallback
-  ): Promise<Uint8Array> {
-    throw new Error("Method not implemented.");
-  }
-
-  async signTeal(
-    teal: Uint8Array,
-    permissionCallback?: PermissionCallback
-  ): Promise<Uint8Array> {
-    return await this.walletConn.signLogicSig(teal, this.getDefaultAccount());
-  }
 }
 
 export default MyAlgoConnectWallet;

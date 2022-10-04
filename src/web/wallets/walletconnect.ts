@@ -1,25 +1,18 @@
-import algosdk, { Transaction, TransactionParams } from "algosdk";
-import { PermissionCallback, SignedTxn, Wallet } from "./wallet";
+import algosdk, { Transaction } from "algosdk";
+import { SignedTxn, Wallet } from "./wallet";
 
 import WalletConnect from "@walletconnect/client";
 import WalletConnectQRCodeModal from "algorand-walletconnect-qrcode-modal";
-
 import { formatJsonRpcRequest } from "@json-rpc-tools/utils";
 
 const logo =
   "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIwIDIwSDE3LjUwNDdMMTUuODY5MyAxMy45NkwxMi4zNjI1IDIwSDkuNTYzNzVMMTQuOTc1OCAxMC42NDU2TDE0LjA5OTEgNy4zODE3TDYuNzk4NzQgMjBINEwxMy4yNTYxIDRIMTUuNzE3NkwxNi43Nzk4IDcuOTg3MzhIMTkuMzA4N0wxNy41ODkgMTAuOTgyMUwyMCAyMFoiIGZpbGw9IiMyQjJCMkYiLz4KPC9zdmc+Cg==";
 
-class WC implements Wallet {
-  accounts: string[];
-  defaultAccount: number;
-  network: string;
+class WC extends Wallet {
   connector: WalletConnect;
-  permissionCallback?: PermissionCallback;
 
   constructor(network: string) {
-    this.accounts = [];
-    this.defaultAccount = 0;
-    this.network = network;
+    super(network)
     const bridge = "https://bridge.walletconnect.org";
     this.connector = new WalletConnect({
       bridge,
@@ -27,13 +20,13 @@ class WC implements Wallet {
     });
   }
 
-  async connect(cb: any): Promise<boolean> {
+  override async connect(cb: any): Promise<boolean> {
     // Check if connection is already established
     if (this.connector.connected) return true;
 
     this.connector.createSession();
 
-    this.connector.on("connect", (error, payload) => {
+    this.connector.on("connect", (error: Error | null, payload: any) => {
       if (error) {
         throw error;
       }
@@ -42,7 +35,7 @@ class WC implements Wallet {
       this.accounts = accounts;
     });
 
-    this.connector.on("session_update", (error, payload) => {
+    this.connector.on("session_update", (error: Error | null, payload: any) => {
       if (error) {
         throw error;
       }
@@ -51,7 +44,7 @@ class WC implements Wallet {
       this.accounts = accounts;
     });
 
-    this.connector.on("disconnect", (error, payload) => {
+    this.connector.on("disconnect", (error: Error | null, payload: any) => {
       if (error) throw error;
     });
 
@@ -71,31 +64,27 @@ class WC implements Wallet {
     });
   }
 
-  static displayName(): string {
+  static override displayName(): string {
     return "Wallet Connect";
   }
+
   displayName(): string {
     return WC.displayName();
   }
 
-  static img(inverted: boolean): string {
+  static override img(inverted: boolean): string {
     return logo;
   }
   img(inverted: boolean): string {
     return WC.img(inverted);
   }
 
-  isConnected(): boolean {
+  override isConnected(): boolean {
     return this.connector.connected;
   }
 
-  disconnect() {
+  override disconnect() {
     this.connector.killSession();
-  }
-
-  getDefaultAccount(): string {
-    if (!this.isConnected()) return "";
-    return this.accounts[this.defaultAccount];
   }
 
   async signTxn(txns: Transaction[]): Promise<SignedTxn[]> {
@@ -115,28 +104,20 @@ class WC implements Wallet {
     const result: string[] = await this.connector.sendCustomRequest(request);
 
     return result.map((element, idx) => {
+      const txn = txns[idx]
+
+      if (txn === undefined) return {txID: "", blob: new Uint8Array()} 
+
       return element
         ? {
-            txID: txns[idx].txID(),
+            txID: txn.txID(),
             blob: new Uint8Array(Buffer.from(element, "base64")),
           }
         : {
-            txID: txns[idx].txID(),
+            txID: txn.txID(),
             blob: new Uint8Array(),
           };
     });
-  }
-
-  async sign(txn: TransactionParams): Promise<SignedTxn> {
-    throw new Error("Method not implemented.");
-  }
-
-  async signBytes(b: Uint8Array): Promise<Uint8Array> {
-    throw new Error("Method not implemented.");
-  }
-
-  async signTeal(teal: Uint8Array): Promise<Uint8Array> {
-    throw new Error("Method not implemented.");
   }
 }
 

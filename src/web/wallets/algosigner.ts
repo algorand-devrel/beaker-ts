@@ -7,22 +7,16 @@ const logo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAO4AAADuCAYAAAA+7jsi
 
 declare const AlgoSigner: any;
 
-class AlgoSignerWallet implements Wallet {
-    accounts: string[] 
-    defaultAccount: number
-    network: string
-    permissionCallback?:PermissionCallback
+class AlgoSignerWallet extends Wallet {
 
     constructor(network: string) { 
-        this.network = network 
-        this.accounts = []
-        this.defaultAccount = 0
+        super(network)
     }
 
-    static displayName():string{ return "AlgoSigner" }
+    static override displayName():string{ return "AlgoSigner" }
     displayName(): string { return AlgoSignerWallet.displayName() }
 
-    static img(inverted: boolean): string {
+    static override img(inverted: boolean): string {
         return inverted?logoInverted:logo
     }
 
@@ -30,22 +24,19 @@ class AlgoSignerWallet implements Wallet {
         return AlgoSignerWallet.img(inverted)
     }
 
-    async connect(): Promise<boolean> {
+    override async connect(): Promise<boolean> {
 
         if(this.isConnected()) return true;
 
         const loaded = await this.waitForLoaded() 
 
         if(!loaded){
-            alert("AlgoSigner not loaded, is it installed?")
             return false
         }
 
         try {
             await AlgoSigner.connect()
-        } catch (err) { 
-            alert("Couldn't connect to algosigner, is it installed?")
-        }
+        } catch (err) { return false }
 
         const accts = await AlgoSigner.accounts({ ledger: this.network })
         this.accounts = accts.map((a:any)=>{ return a.address})
@@ -62,17 +53,6 @@ class AlgoSignerWallet implements Wallet {
         return false
     }
 
-
-    // Only checking accounts, not that algosigner is loaded because sometimes it takes a few tries
-    isConnected(): boolean { return this.accounts && this.accounts.length>0 }
-
-    disconnect() { /* noop */ }
-
-    getDefaultAccount(): string {
-        if(!this.isConnected()) return ""
-
-        return this.accounts[this.defaultAccount];
-    }
 
     async signTxn(txns: Transaction[]): Promise<SignedTxn[]> {
 
@@ -94,20 +74,6 @@ class AlgoSignerWallet implements Wallet {
             }
             return {}
         })
-    }
-
-    async sign(txn: TransactionParams): Promise<SignedTxn> {
-        const stxn = await AlgoSigner.sign(txn)
-        const blob = new Uint8Array(Buffer.from(stxn.blob, 'base64'))
-        return {txID: stxn.txID, blob: blob}
-    }
-
-    async signBytes(b: Uint8Array): Promise<Uint8Array> {
-        throw new Error('Method not implemented.')
-    }
-
-    async signTeal(teal: Uint8Array): Promise<Uint8Array> {
-        throw new Error('Method not implemented.')
     }
 }
 

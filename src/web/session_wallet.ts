@@ -2,8 +2,12 @@ import AlgoSignerWallet from "./wallets/algosigner";
 import MyAlgoConnectWallet from "./wallets/myalgoconnect";
 import InsecureWallet from "./wallets/insecure";
 import WC from "./wallets/walletconnect";
-import { PermissionCallback, Wallet, SignedTxn } from "./wallets/wallet";
-import { Transaction, TransactionSigner } from "algosdk";
+import type { PermissionCallback, Wallet, SignedTxn } from "./wallets/wallet";
+import type { Transaction, TransactionSigner } from "algosdk";
+
+// window objects
+declare var sessionStorage: any;
+declare var prompt: any;
 
 export {
   PermissionResult,
@@ -12,7 +16,8 @@ export {
   SignedTxn,
 } from "./wallets/wallet";
 
-export const allowedWallets = {
+
+export const allowedWallets: Record<string, typeof Wallet> = {
   "wallet-connect": WC,
   "algo-signer": AlgoSignerWallet,
   "my-algo-connect": MyAlgoConnectWallet,
@@ -43,10 +48,12 @@ export class SessionWallet {
 
     if (permissionCallback) this.permissionCallback = permissionCallback;
 
-    if (!(this.wname in allowedWallets)) return;
 
-    this.wallet = new allowedWallets[this.wname](network);
-    this.wallet.permissionCallback = this.permissionCallback;
+    const wtype = allowedWallets[this.wname]
+    if (wtype === undefined) throw new Error(`Unrecognized wallet option: ${this.wname}`);
+
+    this.wallet = new wtype(network);
+    //this.wallet.permissionCallback = this.permissionCallback;
     this.wallet.accounts = this.accountList();
     this.wallet.defaultAccount = this.accountIndex();
   }
@@ -75,7 +82,7 @@ export class SessionWallet {
 
         break;
       case "wallet-connect":
-        await this.wallet.connect((acctList) => {
+        await this.wallet.connect((acctList: string[]) => {
           this.setAccountList(acctList);
           this.wallet.defaultAccount = this.accountIndex();
         });
@@ -160,6 +167,6 @@ export class SessionWallet {
 
   async signTxn(txns: Transaction[]): Promise<SignedTxn[]> {
     if (!this.connected() && !(await this.connect())) return [];
-    return this.wallet.signTxn(txns);
+    return this.wallet.signTxns(txns);
   }
 }

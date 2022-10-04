@@ -1,4 +1,4 @@
-import {Transaction } from 'algosdk';
+import type {Transaction } from 'algosdk';
 
 export interface SignedTxn {
     txID: string;
@@ -16,27 +16,51 @@ export interface PermissionResult {
 }
 
 export interface PermissionCallback {
-    request(PermissionResult): Promise<SignedTxn[]>
+    request(pr: PermissionResult): Promise<SignedTxn[]>
 }
 
-export interface Wallet {
+export class Wallet {
     accounts: string[];
     defaultAccount: number;
     network: string;
     permissionCallback?: PermissionCallback;
 
-    displayName(): string;
+    constructor(network: string){
+        this.accounts = []
+        this.defaultAccount = 0
+        this.network = network 
+    }
 
-    img(inverted: boolean): string;
+    static displayName(): string {
+        return ""
+    }
 
-    connect(settings?: any): Promise<boolean>;
-    isConnected(): boolean;
+    static img(inverted: boolean): string {
+        return ""
+    }
 
-    disconnect()
+    async connect(settings?: any): Promise<boolean> {
+        return new Promise(()=>{false});
+    }
 
-    getDefaultAccount(): string;
+    isConnected(): boolean {
+        return this.accounts && this.accounts.length > 0;
+    }
 
-    signTxn(txns: Transaction[]): Promise<SignedTxn[]>;
-    signBytes(b: Uint8Array): Promise<Uint8Array>;
-    signTeal(teal: Uint8Array): Promise<Uint8Array>;
+    disconnect(): void {
+        return 
+    }
+
+
+    getDefaultAccount(): string {
+        if (!this.isConnected()) throw new Error("No default account set")
+
+        const defaultAcct = this.accounts[this.defaultAccount]
+        if(defaultAcct === undefined) throw new Error("No default account set")
+        return defaultAcct;
+    }
+
+    signTxns(txns: Transaction[]): Promise<SignedTxn[]> {
+        return new Promise(()=>{[]})
+    };
 }
