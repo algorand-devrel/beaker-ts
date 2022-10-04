@@ -1,32 +1,34 @@
-import AlgoSignerWallet from "./wallets/algosigner";
-import MyAlgoConnectWallet from "./wallets/myalgoconnect";
-import InsecureWallet from "./wallets/insecure";
-import WC from "./wallets/walletconnect";
-import type { PermissionCallback, Wallet, SignedTxn } from "./wallets/wallet";
-import type { Transaction, TransactionSigner } from "algosdk";
+import AlgoSignerWallet from './wallets/algosigner';
+import MyAlgoConnectWallet from './wallets/myalgoconnect';
+import InsecureWallet from './wallets/insecure';
+import WC from './wallets/walletconnect';
+import type { PermissionCallback, Wallet, SignedTxn } from './wallets/wallet';
+import type { Transaction, TransactionSigner } from 'algosdk';
 
 // window objects
-declare var sessionStorage: any;
-declare var prompt: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const sessionStorage: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const prompt: any;
 
 export {
   PermissionResult,
   PermissionCallback,
   Wallet,
   SignedTxn,
-} from "./wallets/wallet";
+} from './wallets/wallet';
 
 export const allowedWallets: Record<string, typeof Wallet> = {
-  "wallet-connect": WC,
-  "algo-signer": AlgoSignerWallet,
-  "my-algo-connect": MyAlgoConnectWallet,
-  "insecure-wallet": InsecureWallet,
+  'wallet-connect': WC,
+  'algo-signer': AlgoSignerWallet,
+  'my-algo-connect': MyAlgoConnectWallet,
+  'insecure-wallet': InsecureWallet,
 };
 
-const walletPreferenceKey = "wallet-preference";
-const acctListKey = "acct-list";
-const acctPreferenceKey = "acct-preference";
-const mnemonicKey = "mnemonic";
+const walletPreferenceKey = 'wallet-preference';
+const acctListKey = 'acct-list';
+const acctPreferenceKey = 'acct-preference';
+const mnemonicKey = 'mnemonic';
 
 export class SessionWallet {
   wallet: Wallet;
@@ -37,13 +39,12 @@ export class SessionWallet {
   constructor(
     network: string,
     wname: string,
-    permissionCallback?: PermissionCallback
+    permissionCallback?: PermissionCallback,
   ) {
     this.network = network;
     this.wname = wname;
 
     if (permissionCallback) this.permissionCallback = permissionCallback;
-
 
     const wtype = allowedWallets[wname];
     if (wtype === undefined)
@@ -61,13 +62,13 @@ export class SessionWallet {
     if (this.wallet === undefined) return false;
 
     switch (this.wname) {
-      case "insecure-wallet":
+      case 'insecure-wallet':
         const storedMnemonic = this.mnemonic();
 
         const mnemonic = storedMnemonic
           ? storedMnemonic
           : prompt(
-              "Paste your mnemonic space delimited (DO NOT USE WITH MAINNET ACCOUNTS)"
+              'Paste your mnemonic space delimited (DO NOT USE WITH MAINNET ACCOUNTS)',
             );
 
         if (!mnemonic) return false;
@@ -80,7 +81,7 @@ export class SessionWallet {
         }
 
         break;
-      case "wallet-connect":
+      case 'wallet-connect':
         await this.wallet.connect((acctList: string[]) => {
           this.setAccountList(acctList);
           this.wallet.defaultAccount = this.accountIndex();
@@ -109,58 +110,62 @@ export class SessionWallet {
 
   getSigner(): TransactionSigner {
     return (txnGroup: Transaction[], indexesToSign: number[]) => {
-      return Promise.resolve(this.signTxn(txnGroup)).then((txns) => {
-        return txns.map((tx) => {
-          return tx.blob;
-        });
-      });
+      return Promise.resolve(this.signTxn(txnGroup)).then(
+        (txns: SignedTxn[]) => {
+          return txns
+            .map((tx) => {
+              return tx.blob;
+            })
+            .filter((_, index) => indexesToSign.includes(index));
+        },
+      );
     };
   }
 
-  setAccountList(accts: string[]) {
+  setAccountList(accts: string[]): void {
     sessionStorage.setItem(acctListKey, JSON.stringify(accts));
   }
   accountList(): string[] {
     const accts = sessionStorage.getItem(acctListKey);
-    return accts === "" || accts === null ? [] : JSON.parse(accts);
+    return accts === '' || accts === null ? [] : JSON.parse(accts);
   }
 
-  setAccountIndex(idx: number) {
+  setAccountIndex(idx: number): void {
     this.wallet.defaultAccount = idx;
     sessionStorage.setItem(acctPreferenceKey, idx.toString());
   }
   accountIndex(): number {
     const idx = sessionStorage.getItem(acctPreferenceKey);
-    return idx === null || idx === "" ? 0 : parseInt(idx, 10);
+    return idx === null || idx === '' ? 0 : parseInt(idx, 10);
   }
 
-  setWalletPreference(wname: string) {
+  setWalletPreference(wname: string): void {
     this.wname = wname;
     sessionStorage.setItem(walletPreferenceKey, wname);
   }
   walletPreference(): string {
     const wp = sessionStorage.getItem(walletPreferenceKey);
-    return wp === null ? "" : wp;
+    return wp === null ? '' : wp;
   }
 
-  setMnemonic(m: string) {
+  setMnemonic(m: string): void {
     sessionStorage.setItem(mnemonicKey, m);
   }
   mnemonic(): string {
     const mn = sessionStorage.getItem(mnemonicKey);
-    return mn === null ? "" : mn;
+    return mn === null ? '' : mn;
   }
 
-  disconnect() {
+  disconnect(): void {
     if (this.wallet !== undefined) this.wallet.disconnect();
-    sessionStorage.setItem(walletPreferenceKey, "");
-    sessionStorage.setItem(acctPreferenceKey, "");
-    sessionStorage.setItem(acctListKey, "");
-    sessionStorage.setItem(mnemonicKey, "");
+    sessionStorage.setItem(walletPreferenceKey, '');
+    sessionStorage.setItem(acctPreferenceKey, '');
+    sessionStorage.setItem(acctListKey, '');
+    sessionStorage.setItem(mnemonicKey, '');
   }
 
   getDefaultAccount(): string {
-    if (!this.connected()) return "";
+    if (!this.connected()) return '';
     return this.wallet.getDefaultAccount();
   }
 

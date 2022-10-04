@@ -22,4 +22,6 @@ export {
   getStateSchema,
 } from './generate/appspec';
 
+export { SessionWallet, allowedWallets } from './web/session_wallet';
+
 export * as sandbox from './sandbox';
