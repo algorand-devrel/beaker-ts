@@ -90,8 +90,4 @@ import {HelloBeaker} from "./hellobeaker_client";
 
 See the [examples directory](https://github.com/algorand-devrel/beaker-ts/tree/master/examples) for usage examples.
 
-<<<<<<< HEAD
-Please report issues.
-=======
 Please report issues
->>>>>>> master
