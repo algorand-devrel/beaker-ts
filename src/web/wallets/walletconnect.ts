@@ -20,12 +20,14 @@ class WC extends Wallet {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   override async connect(cb: any): Promise<boolean> {
     // Check if connection is already established
     if (this.connector.connected) return true;
 
     this.connector.createSession();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.connector.on('connect', (error: Error | null, payload: any) => {
       if (error) {
         throw error;
@@ -35,6 +37,7 @@ class WC extends Wallet {
       this.accounts = accounts;
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.connector.on('session_update', (error: Error | null, payload: any) => {
       if (error) {
         throw error;
@@ -44,7 +47,7 @@ class WC extends Wallet {
       this.accounts = accounts;
     });
 
-    this.connector.on('disconnect', (error: Error | null, payload: any) => {
+    this.connector.on('disconnect', (error: Error | null) => {
       if (error) throw error;
     });
 
@@ -72,7 +75,8 @@ class WC extends Wallet {
     return WC.displayName();
   }
 
-  static override img(inverted: boolean): string {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  static override img(_inverted: boolean): string {
     return logo;
   }
   img(inverted: boolean): string {
@@ -83,7 +87,7 @@ class WC extends Wallet {
     return this.connector.connected;
   }
 
-  override disconnect() {
+  override disconnect(): void {
     this.connector.killSession();
   }
 

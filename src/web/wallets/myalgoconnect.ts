@@ -1,6 +1,5 @@
 import algosdk, { Transaction } from 'algosdk';
 import { PermissionCallback, SignedTxn, Wallet } from './wallet';
-// @ts-ignore
 import MyAlgo from '@randlabs/myalgo-connect';
 
 const logoInverted =
@@ -20,8 +19,8 @@ class MyAlgoConnectWallet extends Wallet {
 
   walletConn: MyAlgo;
 
-  constructor() {
-    super();
+  constructor(network: string) {
+    super(network);
     this.walletConn = new MyAlgo();
   }
 
@@ -56,30 +55,31 @@ class MyAlgoConnectWallet extends Wallet {
     return true;
   }
 
-  override disconnect() {
-    /* noop */
-  }
-
   async doSign(defaultAcct: string, txns: Transaction[]): Promise<SignedTxn[]> {
-    const unsigned = [];
-    const signedTxns = [];
-    for (const tidx in txns) {
-      if (!txns[tidx]) continue;
+    const unsigned: Uint8Array[] = [];
+    const signedTxns: SignedTxn[] = [];
+    const toSignTxns: number[] = [];
 
+    for (let tidx = 0; tidx < txns.length; tidx++) {
       const txn = txns[tidx];
       if (txn === undefined) continue;
 
+      signedTxns.push({ txID: '', blob: new Uint8Array() });
+
       if (algosdk.encodeAddress(txn.from.publicKey) === defaultAcct) {
-        signedTxns.push(unsigned.length);
+        toSignTxns.push(tidx);
         unsigned.push(txn.toByte());
-      } else {
-        signedTxns.push({ txID: '', blob: new Uint8Array() });
       }
     }
 
     const s = await this.walletConn.signTransaction(unsigned);
-    for (let x = 0; x < signedTxns.length; x++) {
-      if (typeof signedTxns[x] === 'number') signedTxns[x] = s[signedTxns[x]];
+    for (const sidx in s) {
+      const signedIdx = toSignTxns[sidx];
+      if (signedIdx === undefined) continue;
+
+      const stxn = s[sidx];
+      if (stxn === undefined) continue;
+      signedTxns[signedIdx] = stxn;
     }
 
     return signedTxns;

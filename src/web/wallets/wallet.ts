@@ -35,11 +35,13 @@ export class Wallet {
     return '';
   }
 
-  static img(inverted: boolean): string {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  static img(_inverted: boolean): string {
     return '';
   }
 
-  async connect(settings?: any): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+  async connect(_settings?: any): Promise<boolean> {
     return new Promise(() => {
       false;
     });
@@ -61,7 +63,8 @@ export class Wallet {
     return defaultAcct;
   }
 
-  signTxns(txns: Transaction[]): Promise<SignedTxn[]> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  signTxns(_txns: Transaction[]): Promise<SignedTxn[]> {
     return new Promise(() => {
       [];
     });

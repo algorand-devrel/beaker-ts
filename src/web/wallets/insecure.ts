@@ -28,7 +28,8 @@ class InsecureWallet extends Wallet {
     return InsecureWallet.displayName();
   }
 
-  static override img(inverted: boolean): string {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  static override img(_inverted: boolean): string {
     return logo;
   }
 
@@ -44,7 +45,7 @@ class InsecureWallet extends Wallet {
     );
   }
 
-  override disconnect() {
+  override disconnect(): void {
     this.accounts = [];
     this.pkToSk = {};
   }
