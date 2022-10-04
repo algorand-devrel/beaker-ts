@@ -26,20 +26,38 @@ export class Structer extends bkr.ApplicationClient {
     async read_item(args: {
         order_number: bigint;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<Order>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "read_item"), { order_number: args.order_number }, txnParams);
+        const result = await this.execute(await this.compose.read_item({ order_number: args.order_number }, txnParams));
         return new bkr.ABIResult<Order>(result, Order.decodeResult(result.returnValue));
     }
     async place_order(args: {
         order_number: bigint;
         order: Order;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<void>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "place_order"), { order_number: args.order_number, order: args.order }, txnParams);
+        const result = await this.execute(await this.compose.place_order({ order_number: args.order_number, order: args.order }, txnParams));
         return new bkr.ABIResult<void>(result);
     }
     async increase_quantity(args: {
         order_number: bigint;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<Order>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "increase_quantity"), { order_number: args.order_number }, txnParams);
+        const result = await this.execute(await this.compose.increase_quantity({ order_number: args.order_number }, txnParams));
         return new bkr.ABIResult<Order>(result, Order.decodeResult(result.returnValue));
     }
+    compose = {
+        read_item: async (args: {
+            order_number: bigint;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "read_item"), { order_number: args.order_number }, txnParams, atc);
+        },
+        place_order: async (args: {
+            order_number: bigint;
+            order: Order;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "place_order"), { order_number: args.order_number, order: args.order }, txnParams, atc);
+        },
+        increase_quantity: async (args: {
+            order_number: bigint;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "increase_quantity"), { order_number: args.order_number }, txnParams, atc);
+        }
+    };
 }

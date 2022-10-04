@@ -3,14 +3,14 @@ import * as bkr from "../../src";
 import { ConstantProductAMM } from "./constantproductamm_client";
 
 (async function () {
-  const acct = (await bkr.getAccounts()).pop();
+  const acct = (await bkr.sandbox.getAccounts()).pop();
   if (acct === undefined) throw new Error("No accounts in sandbox");
 
   //
   // Instantiate a CP-AMM client
   //
   const appClient = new ConstantProductAMM({
-    client: bkr.getAlgodClient(),
+    client: bkr.sandbox.getAlgodClient(),
     signer: acct.signer,
     sender: acct.addr,
   });

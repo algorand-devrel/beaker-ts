@@ -12,7 +12,14 @@ export class HelloBeaker extends bkr.ApplicationClient {
     async hello(args: {
         name: string;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<string>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "hello"), { name: args.name }, txnParams);
+        const result = await this.execute(await this.compose.hello({ name: args.name }, txnParams));
         return new bkr.ABIResult<string>(result, result.returnValue as string);
     }
+    compose = {
+        hello: async (args: {
+            name: string;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "hello"), { name: args.name }, txnParams, atc);
+        }
+    };
 }

@@ -18,7 +18,7 @@ export class ConstantProductAMM extends bkr.ApplicationClient {
         a_asset: bigint;
         b_asset: bigint;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<bigint>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "bootstrap"), { seed: args.seed, a_asset: args.a_asset, b_asset: args.b_asset }, txnParams);
+        const result = await this.execute(await this.compose.bootstrap({ seed: args.seed, a_asset: args.a_asset, b_asset: args.b_asset }, txnParams));
         return new bkr.ABIResult<bigint>(result, result.returnValue as bigint);
     }
     async burn(args: {
@@ -27,7 +27,7 @@ export class ConstantProductAMM extends bkr.ApplicationClient {
         a_asset?: bigint;
         b_asset?: bigint;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<void>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "burn"), { pool_xfer: args.pool_xfer, pool_asset: args.pool_asset === undefined ? await this.resolve("global-state", "p") : args.pool_asset, a_asset: args.a_asset === undefined ? await this.resolve("global-state", "a") : args.a_asset, b_asset: args.b_asset === undefined ? await this.resolve("global-state", "b") : args.b_asset }, txnParams);
+        const result = await this.execute(await this.compose.burn({ pool_xfer: args.pool_xfer, pool_asset: args.pool_asset === undefined ? await this.resolve("global-state", "p") as bigint : args.pool_asset, a_asset: args.a_asset === undefined ? await this.resolve("global-state", "a") as bigint : args.a_asset, b_asset: args.b_asset === undefined ? await this.resolve("global-state", "b") as bigint : args.b_asset }, txnParams));
         return new bkr.ABIResult<void>(result);
     }
     async mint(args: {
@@ -37,13 +37,13 @@ export class ConstantProductAMM extends bkr.ApplicationClient {
         a_asset?: bigint;
         b_asset?: bigint;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<void>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "mint"), { a_xfer: args.a_xfer, b_xfer: args.b_xfer, pool_asset: args.pool_asset === undefined ? await this.resolve("global-state", "p") : args.pool_asset, a_asset: args.a_asset === undefined ? await this.resolve("global-state", "a") : args.a_asset, b_asset: args.b_asset === undefined ? await this.resolve("global-state", "b") : args.b_asset }, txnParams);
+        const result = await this.execute(await this.compose.mint({ a_xfer: args.a_xfer, b_xfer: args.b_xfer, pool_asset: args.pool_asset === undefined ? await this.resolve("global-state", "p") as bigint : args.pool_asset, a_asset: args.a_asset === undefined ? await this.resolve("global-state", "a") as bigint : args.a_asset, b_asset: args.b_asset === undefined ? await this.resolve("global-state", "b") as bigint : args.b_asset }, txnParams));
         return new bkr.ABIResult<void>(result);
     }
     async set_governor(args: {
         new_governor: string;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<void>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "set_governor"), { new_governor: args.new_governor }, txnParams);
+        const result = await this.execute(await this.compose.set_governor({ new_governor: args.new_governor }, txnParams));
         return new bkr.ABIResult<void>(result);
     }
     async swap(args: {
@@ -51,7 +51,45 @@ export class ConstantProductAMM extends bkr.ApplicationClient {
         a_asset?: bigint;
         b_asset?: bigint;
     }, txnParams?: bkr.TransactionOverrides): Promise<bkr.ABIResult<void>> {
-        const result = await this.call(algosdk.getMethodByName(this.methods, "swap"), { swap_xfer: args.swap_xfer, a_asset: args.a_asset === undefined ? await this.resolve("global-state", "a") : args.a_asset, b_asset: args.b_asset === undefined ? await this.resolve("global-state", "b") : args.b_asset }, txnParams);
+        const result = await this.execute(await this.compose.swap({ swap_xfer: args.swap_xfer, a_asset: args.a_asset === undefined ? await this.resolve("global-state", "a") as bigint : args.a_asset, b_asset: args.b_asset === undefined ? await this.resolve("global-state", "b") as bigint : args.b_asset }, txnParams));
         return new bkr.ABIResult<void>(result);
     }
+    compose = {
+        bootstrap: async (args: {
+            seed: algosdk.TransactionWithSigner | algosdk.Transaction;
+            a_asset: bigint;
+            b_asset: bigint;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "bootstrap"), { seed: args.seed, a_asset: args.a_asset, b_asset: args.b_asset }, txnParams, atc);
+        },
+        burn: async (args: {
+            pool_xfer: algosdk.TransactionWithSigner | algosdk.Transaction;
+            pool_asset?: bigint;
+            a_asset?: bigint;
+            b_asset?: bigint;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "burn"), { pool_xfer: args.pool_xfer, pool_asset: args.pool_asset === undefined ? await this.resolve("global-state", "p") : args.pool_asset, a_asset: args.a_asset === undefined ? await this.resolve("global-state", "a") : args.a_asset, b_asset: args.b_asset === undefined ? await this.resolve("global-state", "b") : args.b_asset }, txnParams, atc);
+        },
+        mint: async (args: {
+            a_xfer: algosdk.TransactionWithSigner | algosdk.Transaction;
+            b_xfer: algosdk.TransactionWithSigner | algosdk.Transaction;
+            pool_asset?: bigint;
+            a_asset?: bigint;
+            b_asset?: bigint;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "mint"), { a_xfer: args.a_xfer, b_xfer: args.b_xfer, pool_asset: args.pool_asset === undefined ? await this.resolve("global-state", "p") : args.pool_asset, a_asset: args.a_asset === undefined ? await this.resolve("global-state", "a") : args.a_asset, b_asset: args.b_asset === undefined ? await this.resolve("global-state", "b") : args.b_asset }, txnParams, atc);
+        },
+        set_governor: async (args: {
+            new_governor: string;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "set_governor"), { new_governor: args.new_governor }, txnParams, atc);
+        },
+        swap: async (args: {
+            swap_xfer: algosdk.TransactionWithSigner | algosdk.Transaction;
+            a_asset?: bigint;
+            b_asset?: bigint;
+        }, txnParams?: bkr.TransactionOverrides, atc?: algosdk.AtomicTransactionComposer): Promise<algosdk.AtomicTransactionComposer> => {
+            return this.addMethodCall(algosdk.getMethodByName(this.methods, "swap"), { swap_xfer: args.swap_xfer, a_asset: args.a_asset === undefined ? await this.resolve("global-state", "a") : args.a_asset, b_asset: args.b_asset === undefined ? await this.resolve("global-state", "b") : args.b_asset }, txnParams, atc);
+        }
+    };
 }

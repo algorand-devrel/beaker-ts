@@ -1,27 +1,27 @@
-import type algosdk from "algosdk";
+import type algosdk from 'algosdk';
 
 export enum AVMType {
   uint64,
   bytes,
 }
 
-type StructElement = [string, string]
+type StructElement = [string, string];
 export interface Struct {
-  name: string,
-  elements: StructElement[]
+  name: string;
+  elements: StructElement[];
 }
 
 export interface DefaultArgument {
-  source: string
-  data: string | bigint | number 
+  source: string;
+  data: string | bigint | number;
 }
 export interface Hint {
-  structs: Record<string, Struct> 
-  readonly: boolean
-  default_arguments: Record<string, DefaultArgument>
+  structs: Record<string, Struct>;
+  readonly: boolean;
+  default_arguments: Record<string, DefaultArgument>;
 }
 
-export type HintSpec = Record<string, Hint> 
+export type HintSpec = Record<string, Hint>;
 
 export interface DeclaredSchemaValueSpec {
   type: AVMType;
@@ -37,8 +37,8 @@ export interface DynamicSchemaValueSpec {
 }
 
 export interface Schema {
-  declared: Record<string, DeclaredSchemaValueSpec>
-  dynamic: Record<string, DynamicSchemaValueSpec>
+  declared: Record<string, DeclaredSchemaValueSpec>;
+  dynamic: Record<string, DynamicSchemaValueSpec>;
 }
 
 export type StateSchema = {

@@ -1,11 +1,16 @@
 {
-  "extends": "@tsconfig/node16-strictest/tsconfig.json",
-  "compilerOptions": {
-    "outDir": "lib",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-  },
-  "include": [
-    "src"
-, "examples"  ]
-}
+    "extends": "@tsconfig/node16-strictest/tsconfig.json",
+    "compilerOptions": {
+      "target": "es5",
+      "module": "commonjs",
+      "lib": ["es6", "es2015", "dom"],
+      "declaration": true,
+      "outDir": "lib",
+      "rootDir": "src",
+      "types": ["node"],
+      "esModuleInterop": true,
+      "resolveJsonModule": true,
+      "strict":true
+    },
+    "include":["src"]
+  }

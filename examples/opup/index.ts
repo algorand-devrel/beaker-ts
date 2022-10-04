@@ -1,14 +1,14 @@
 import algosdk from "algosdk";
-import { getAccounts, getAlgodClient } from "../../";
+import * as bkr from "../../src";
 import { ExpensiveApp } from "./expensiveapp_client";
 
 (async function () {
-  const acct = (await getAccounts()).pop();
+  const acct = (await bkr.sandbox.getAccounts()).pop();
 
   if(acct === undefined) return
 
   const appClient = new ExpensiveApp({
-    client: getAlgodClient(),
+    client: bkr.sandbox.getAlgodClient(),
     signer: acct.signer,
     sender: acct.addr,
   });

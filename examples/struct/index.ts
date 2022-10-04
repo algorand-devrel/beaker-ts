@@ -1,14 +1,14 @@
 import { isUint8Array } from "util/types";
-import { getAccounts, getAlgodClient } from "../../";
+import * as bkr from "../../src";
 import { Order, Structer } from "./structer_client";
 
 (async function () {
-  const acct = (await getAccounts()).pop();
+  const acct = (await bkr.sandbox.getAccounts()).pop();
 
   if(acct === undefined) return
 
   const appClient = new Structer({
-    client: getAlgodClient(),
+    client: bkr.sandbox.getAlgodClient(),
     signer: acct.signer,
     sender: acct.addr,
   });
