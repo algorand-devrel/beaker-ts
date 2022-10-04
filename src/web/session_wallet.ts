@@ -16,7 +16,6 @@ export {
   SignedTxn,
 } from "./wallets/wallet";
 
-
 export const allowedWallets: Record<string, typeof Wallet> = {
   "wallet-connect": WC,
   "algo-signer": AlgoSignerWallet,
@@ -37,25 +36,25 @@ export class SessionWallet {
 
   constructor(
     network: string,
-    permissionCallback?: PermissionCallback,
-    wname?: string
+    wname: string,
+    permissionCallback?: PermissionCallback
   ) {
-    if (wname) this.setWalletPreference(wname);
-
     this.network = network;
-
-    this.wname = this.walletPreference();
+    this.wname = wname;
 
     if (permissionCallback) this.permissionCallback = permissionCallback;
 
 
-    const wtype = allowedWallets[this.wname]
-    if (wtype === undefined) throw new Error(`Unrecognized wallet option: ${this.wname}`);
+    const wtype = allowedWallets[wname];
+    if (wtype === undefined)
+      throw new Error(`Unrecognized wallet option: ${wname}`);
 
     this.wallet = new wtype(network);
     //this.wallet.permissionCallback = this.permissionCallback;
     this.wallet.accounts = this.accountList();
     this.wallet.defaultAccount = this.accountIndex();
+
+    this.setWalletPreference(this.wname);
   }
 
   async connect(): Promise<boolean> {
