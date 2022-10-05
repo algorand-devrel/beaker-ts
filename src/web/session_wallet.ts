@@ -11,13 +11,6 @@ declare const sessionStorage: any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const prompt: any;
 
-export {
-  PermissionResult,
-  PermissionCallback,
-  Wallet,
-  SignedTxn,
-} from './wallets/wallet';
-
 export const allowedWallets: Record<string, typeof Wallet> = {
   'wallet-connect': WC,
   'algo-signer': AlgoSignerWallet,
