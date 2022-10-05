@@ -12,25 +12,46 @@ export type SandboxAccount = {
   signer: algosdk.TransactionSigner;
 };
 
-export async function getAccounts(): Promise<SandboxAccount[]> {
-  const kmdClient = new algosdk.Kmd(kmd_token, kmd_host, kmd_port);
+export type KMDConfig = {
+  host: string;
+  port: string;
+  token: string;
+  wallet: string;
+  password: string;
+};
+
+export const DefaultKMDConfig = {
+  host: kmd_host,
+  token: kmd_token,
+  port: kmd_port,
+  wallet: kmd_wallet,
+  password: kmd_password,
+} as KMDConfig;
+
+export async function getAccounts(
+  config: KMDConfig = DefaultKMDConfig,
+): Promise<SandboxAccount[]> {
+  const kmdClient = new algosdk.Kmd(config.token, config.host, config.port);
 
   const wallets = await kmdClient.listWallets();
 
   let walletId;
   for (const wallet of wallets['wallets']) {
-    if (wallet['name'] === kmd_wallet) walletId = wallet['id'];
+    if (wallet['name'] === config.wallet) walletId = wallet['id'];
   }
 
-  if (walletId === undefined) throw Error('No wallet named: ' + kmd_wallet);
+  if (walletId === undefined) throw Error('No wallet named: ' + config.wallet);
 
-  const handleResp = await kmdClient.initWalletHandle(walletId, kmd_password);
+  const handleResp = await kmdClient.initWalletHandle(
+    walletId,
+    config.password,
+  );
   const handle = handleResp['wallet_handle_token'];
 
   const addresses = await kmdClient.listKeys(handle);
   const acctPromises: Promise<{ private_key: Buffer }>[] = [];
   for (const addr of addresses['addresses']) {
-    acctPromises.push(kmdClient.exportKey(handle, kmd_password, addr));
+    acctPromises.push(kmdClient.exportKey(handle, config.password, addr));
   }
   const keys = await Promise.all(acctPromises);
 

@@ -2,8 +2,9 @@ import AlgoSignerWallet from './wallets/algosigner';
 import MyAlgoConnectWallet from './wallets/myalgoconnect';
 import InsecureWallet from './wallets/insecure';
 import WC from './wallets/walletconnect';
-import type { PermissionCallback, Wallet, SignedTxn } from './wallets/wallet';
+import type { Wallet, SignedTxn } from './wallets/wallet';
 import type { Transaction, TransactionSigner } from 'algosdk';
+import { KMDWallet } from './wallets/kmd';
 
 // window objects
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,6 +17,7 @@ export const ImplementedWallets: Record<string, typeof Wallet> = {
   'algo-signer': AlgoSignerWallet,
   'my-algo-connect': MyAlgoConnectWallet,
   'insecure-wallet': InsecureWallet,
+  'kmd-wallet': KMDWallet,
 };
 
 const walletPreferenceKey = 'wallet-preference';
@@ -27,24 +29,16 @@ export class SessionWallet {
   wallet: Wallet;
   wname: string;
   network: string;
-  permissionCallback?: PermissionCallback;
 
-  constructor(
-    network: string,
-    wname: string,
-    permissionCallback?: PermissionCallback,
-  ) {
-    this.network = network;
+  constructor(network: string, wname: string) {
     this.wname = wname;
-
-    if (permissionCallback) this.permissionCallback = permissionCallback;
+    this.network = network;
 
     const wtype = ImplementedWallets[wname];
     if (wtype === undefined)
       throw new Error(`Unrecognized wallet option: ${wname}`);
 
     this.wallet = new wtype(network);
-    //this.wallet.permissionCallback = this.permissionCallback;
     this.wallet.accounts = this.accountList();
     this.wallet.defaultAccount = this.accountIndex();
 
