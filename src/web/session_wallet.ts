@@ -11,7 +11,7 @@ declare const sessionStorage: any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const prompt: any;
 
-export const allowedWallets: Record<string, typeof Wallet> = {
+export const ImplementedWallets: Record<string, typeof Wallet> = {
   'wallet-connect': WC,
   'algo-signer': AlgoSignerWallet,
   'my-algo-connect': MyAlgoConnectWallet,
@@ -39,7 +39,7 @@ export class SessionWallet {
 
     if (permissionCallback) this.permissionCallback = permissionCallback;
 
-    const wtype = allowedWallets[wname];
+    const wtype = ImplementedWallets[wname];
     if (wtype === undefined)
       throw new Error(`Unrecognized wallet option: ${wname}`);
 

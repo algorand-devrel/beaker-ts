@@ -22,6 +22,6 @@ export {
   getStateSchema,
 } from './generate/appspec';
 
-export { SessionWallet, Wallet, SignedTxn, allowedWallets } from './web';
+export { SessionWallet, Wallet, SignedTxn, ImplementedWallets } from './web';
 
 export * as sandbox from './sandbox';
