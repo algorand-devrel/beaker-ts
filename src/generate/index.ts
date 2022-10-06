@@ -1,2 +1,2 @@
-export *  from './appspec';
-export { generateApplicationClient } from './generate'
+export * from './appspec';
+export { generateApplicationClient } from './generate';

@@ -9,7 +9,7 @@ import type {
 
 import algosdk from 'algosdk';
 import ts from 'typescript';
-const {factory} = ts;
+const { factory } = ts;
 
 // AMAZING resource:
 // https://ts-ast-viewer.com/#

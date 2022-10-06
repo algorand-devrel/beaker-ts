@@ -10,7 +10,7 @@ const program = new Command();
 program
   .name('beaker')
   .description('Utilities for working with beaker applications')
-  .version("0.0.35");
+  .version('0.0.35');
 
 program
   .command('generate')
@@ -18,7 +18,6 @@ program
   .arguments('<path-to-spec> <path-to-write>')
   .option('-l, --local', 'whether or not to use local import')
   .action((specPath, srcPath, options) => {
-
     if (srcPath.slice(-1) !== path.sep) srcPath += path.sep;
 
     if (!fs.lstatSync(srcPath).isDirectory()) {
@@ -34,8 +33,11 @@ program
       jsonObj = { hints: {}, source: {}, schema: {}, contract: jsonObj };
     }
 
-    const outputFile = generateApplicationClient(jsonObj, options.local ? '../../src/' : undefined);
-    const name: string = jsonObj.contract.name
+    const outputFile = generateApplicationClient(
+      jsonObj,
+      options.local ? '../../src/' : undefined,
+    );
+    const name: string = jsonObj.contract.name;
     const file_name = `${name.toLowerCase()}_client.ts`;
 
     fs.writeFileSync(srcPath + file_name, outputFile);
