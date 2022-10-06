@@ -5,9 +5,9 @@
   "main": "./lib/index.js",
   "scripts": {
     "build": "npx tsc -p .",
-    "beaker": "npx ts-node src/beaker.ts",
+    "beaker": "npx ts-node-esm src/beaker.ts",
     "genhello": "npm run beaker -- generate --local examples/hello/hello.json examples/hello/",
-    "hello": "npx ts-node examples/hello/index.ts",
+    "hello": "npx ts-node examples/hello/",
     "genstructer": "npm run beaker -- generate --local examples/struct/structer.json examples/struct/",
     "structer": "npx ts-node examples/struct/index.ts",
     "genopup": "npm run beaker -- generate --local examples/opup/opup.json examples/opup/",

@@ -1,13 +1,12 @@
-import * as bkr from "../../src";
-
+import {sandbox} from "beaker-ts";
 import {HelloBeaker} from "./hellobeaker_client";
 
 (async function () {
-  const acct = (await bkr.sandbox.getAccounts()).pop();
+  const acct = (await sandbox.getAccounts()).pop();
   if (acct === undefined) return
 
   const appClient = new HelloBeaker({
-    client: bkr.sandbox.getAlgodClient(),
+    client: sandbox.getAlgodClient(),
     signer: acct.signer,
     sender: acct.addr,
   });

@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { generateApplicationClient } from './generate/generate';
+import { generateApplicationClient } from './index.js';
 
 import * as fs from 'fs';
 import * as path from 'path';
