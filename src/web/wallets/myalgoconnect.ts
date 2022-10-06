@@ -1,5 +1,5 @@
 import algosdk, { Transaction } from 'algosdk';
-import { PermissionCallback, SignedTxn, Wallet } from './wallet';
+import { SignedTxn, Wallet } from './wallet';
 import MyAlgo from '@randlabs/myalgo-connect';
 
 const logoInverted =
@@ -15,8 +15,6 @@ const logo =
 */
 
 class MyAlgoConnectWallet extends Wallet {
-  override permissionCallback?: PermissionCallback;
-
   walletConn: MyAlgo;
 
   constructor(network: string) {
@@ -89,16 +87,16 @@ class MyAlgoConnectWallet extends Wallet {
     const defaultAcct = this.getDefaultAccount();
     if (defaultAcct === undefined) return [];
 
-    if (this.permissionCallback) {
-      return await this.permissionCallback.request({
-        approved: async (): Promise<SignedTxn[]> => {
-          return await this.doSign(defaultAcct, txns);
-        },
-        declined: async (): Promise<SignedTxn[]> => {
-          return [];
-        },
-      });
-    }
+    //if (this.permissionCallback) {
+    //  return await this.permissionCallback.request({
+    //    approved: async (): Promise<SignedTxn[]> => {
+    //      return await this.doSign(defaultAcct, txns);
+    //    },
+    //    declined: async (): Promise<SignedTxn[]> => {
+    //      return [];
+    //    },
+    //  });
+    //}
 
     return await this.doSign(defaultAcct, txns);
   }
