@@ -3,7 +3,6 @@
   "version": "0.0.35",
   "description": "",
   "main": "./lib/index.js",
-  "type":"module",
   "scripts": {
     "build": "npx tsc -p .",
     "beaker": "npx ts-node src/beaker.ts",

@@ -15,6 +15,5 @@
       "moduleResolution": "Node",
       "strict":true
     },
-    "ts-node": {"esm": true},
     "include":["src"]
   }

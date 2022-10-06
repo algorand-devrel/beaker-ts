@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { generateApplicationClient } from './generate/generate.js';
+import { generateApplicationClient } from './generate/generate';
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -35,7 +35,8 @@ program
     }
 
     const outputFile = generateApplicationClient(jsonObj, options.local ? '../../src/' : undefined);
-    const file_name = `${jsonObj.contract.name}_client.ts`;
+    const name: string = jsonObj.contract.name
+    const file_name = `${name.toLowerCase()}_client.ts`;
 
     fs.writeFileSync(srcPath + file_name, outputFile);
 

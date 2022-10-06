@@ -3,7 +3,6 @@ import { Wallet, SignedTxn } from './wallet';
 import type { KMDConfig } from '../../sandbox/accounts';
 import { sandbox } from '../..';
 
-
 export class KMDWallet extends Wallet {
   pkToSk: Record<string, algosdk.Account>;
 
@@ -13,7 +12,7 @@ export class KMDWallet extends Wallet {
   }
 
   override async connect(config: KMDConfig): Promise<boolean> {
-    this.accounts = []
+    this.accounts = [];
     const accts = await sandbox.getAccounts(config);
     for (const sba of accts) {
       this.pkToSk[sba.addr] = {
