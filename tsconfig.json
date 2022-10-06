@@ -2,7 +2,7 @@
     "extends": "@tsconfig/node16-strictest/tsconfig.json",
     "compilerOptions": {
       "target": "es6",
-      "module": "CommonJS",
+      "module": "ESNext",
       "lib": ["es6", "es2015", "dom"],
       "allowJs": true,
       "sourceMap": true,
@@ -11,6 +11,8 @@
       "rootDir": "src",
       "types": ["node"],
       "esModuleInterop": true,
+      "resolveJsonModule": true,
+      "moduleResolution": "Node",
       "strict":true
     },
     "include":["src"]
