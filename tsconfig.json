@@ -1,7 +1,7 @@
 {
     "extends": "@tsconfig/node16-strictest/tsconfig.json",
     "compilerOptions": {
-      "target": "es6",
+      "target": "ESNext",
       "module": "ESNext",
       "lib": ["es6", "es2015", "dom"],
       "allowJs": true,
@@ -15,5 +15,6 @@
       "moduleResolution": "Node",
       "strict":true
     },
+    "ts-node": {"esm": true},
     "include":["src"]
   }

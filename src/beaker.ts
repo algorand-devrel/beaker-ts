@@ -1,18 +1,16 @@
-#!/usr/bin/env node
-
 import { Command } from 'commander';
-import { generateApplicationClient } from './generate/generate';
+import { generateApplicationClient } from './generate/generate.js';
 
 import * as fs from 'fs';
 import * as path from 'path';
 
-const pjson = require('../package.json'); // eslint-disable-line
+//const pjson = ../package.json'); // eslint-disable-line
 const program = new Command();
 
 program
   .name('beaker')
   .description('Utilities for working with beaker applications')
-  .version(pjson['version']);
+  .version("0.0.35");
 
 program
   .command('generate')
@@ -20,7 +18,6 @@ program
   .arguments('<path-to-spec> <path-to-write>')
   .option('-l, --local', 'whether or not to use local import')
   .action((specPath, srcPath, options) => {
-    const importPath = options.local ? '../../src/' : undefined;
 
     if (srcPath.slice(-1) !== path.sep) srcPath += path.sep;
 
@@ -32,14 +29,17 @@ program
       throw Error('Path to spec must be a file');
     }
 
-    console.log(`Writing client to: ${srcPath}`);
-
     let jsonObj = JSON.parse(fs.readFileSync(specPath).toString());
     if (!('contract' in jsonObj)) {
       jsonObj = { hints: {}, source: {}, schema: {}, contract: jsonObj };
     }
 
-    generateApplicationClient(jsonObj, srcPath, importPath);
+    const outputFile = generateApplicationClient(jsonObj, options.local ? '../../src/' : undefined);
+    const file_name = `${jsonObj.contract.name}_client.ts`;
+
+    fs.writeFileSync(srcPath + file_name, outputFile);
+
+    console.log(`Wrote client to: ${srcPath + file_name}`);
   });
 
 program.parse();

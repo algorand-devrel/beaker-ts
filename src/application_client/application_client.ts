@@ -1,6 +1,6 @@
 import algosdk, { ABIReferenceType, AtomicTransactionComposer } from 'algosdk';
 
-import { getStateSchema, Schema } from '../';
+import { getStateSchema, Schema } from '../generate';
 import { parseLogicError, LogicError } from './logic_error';
 import { ApplicationState, AccountState, decodeState } from './state';
 

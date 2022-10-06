@@ -8,8 +8,8 @@ import type {
 } from './appspec';
 
 import algosdk from 'algosdk';
-import ts, { factory } from 'typescript';
-import { writeFileSync } from 'fs';
+import ts from 'typescript';
+const {factory} = ts;
 
 // AMAZING resource:
 // https://ts-ast-viewer.com/#
@@ -140,9 +140,8 @@ function defaultValueFromTsType(t: ts.TypeNode): ts.Expression {
 
 export function generateApplicationClient(
   appSpec: AppSpec,
-  path: string,
   beakerPath?: string,
-): void {
+): string {
   const name = appSpec.contract.name;
 
   const nodes: ts.Node[] = generateImports(beakerPath);
@@ -153,7 +152,7 @@ export function generateApplicationClient(
   const classNode = generateClass(appSpec);
   nodes.push(classNode);
 
-  const outputFile = ts
+  return ts
     .createPrinter()
     .printList(
       ts.ListFormat.MultiLine,
@@ -166,9 +165,6 @@ export function generateApplicationClient(
         ts.ScriptKind.TS,
       ),
     );
-
-  const file_name = `${name.toLowerCase()}_client.ts`;
-  writeFileSync(path + file_name, outputFile);
 }
 
 // create the imports for the generated client
