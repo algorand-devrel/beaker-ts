@@ -1,5 +1,5 @@
 import algosdk from "algosdk";
-import * as bkr from "beaker-ts";
+import * as bkr from "../../src/";
 export class HelloBeaker extends bkr.ApplicationClient {
     desc: string = "";
     override appSchema: bkr.Schema = { declared: {}, dynamic: {} };

@@ -1,4 +1,4 @@
-import {sandbox} from "beaker-ts";
+import {sandbox} from "../../src";
 import {HelloBeaker} from "./hellobeaker_client";
 
 (async function () {

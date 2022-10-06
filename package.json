@@ -5,17 +5,17 @@
   "main": "./lib/index.js",
   "scripts": {
     "build": "npx tsc -p .",
-    "beaker": "npx ts-node-esm src/beaker.ts",
+    "beaker": "npx tsx src/beaker.ts",
     "genhello": "npm run beaker -- generate --local examples/hello/hello.json examples/hello/",
-    "hello": "npx ts-node examples/hello/",
+    "hello": "npx tsx examples/hello/index.ts",
     "genstructer": "npm run beaker -- generate --local examples/struct/structer.json examples/struct/",
-    "structer": "npx ts-node examples/struct/index.ts",
+    "structer": "npx tsx examples/struct/index.ts",
     "genopup": "npm run beaker -- generate --local examples/opup/opup.json examples/opup/",
-    "opup": "npx ts-node examples/opup/index.ts",
+    "opup": "npx tsx examples/opup/index.ts",
     "genamm": "npm run beaker -- generate --local examples/amm/amm.json examples/amm/",
-    "amm": "npx ts-node examples/amm/index.ts",
+    "amm": "npx tsx examples/amm/index.ts",
     "genavm7": "npm run beaker -- generate --local examples/demo_avm7/demo_avm7.json examples/demo_avm7/",
-    "avm7": "npx ts-node examples/demo_avm7/index.ts",
+    "avm7": "npx tsx examples/demo_avm7/index.ts",
     "regen": "npm run genhello && npm run genstructer && npm run genopup && npm run genavm7 && npm run genamm",
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\""
@@ -37,18 +37,18 @@
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-react": "^7.28.0",
     "eslint-plugin-react-hooks": "^4.3.0",
-    "prettier": "^2.7.1"
+    "prettier": "^2.7.1",
+    "tsx": "^3.9.0"
   },
   "dependencies": {
-    "algosdk": "^1.21.0",
-    "commander": "^9.4.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^4.7.4",
     "@json-rpc-tools/utils": "^1.7.6",
     "@randlabs/myalgo-connect": "^1.1.0",
     "@walletconnect/client": "^1.6.5",
     "@walletconnect/qrcode-modal": "^1.6.5",
     "algorand-walletconnect-qrcode-modal": "^1.6.1",
-    "buffer": "^6.0.3"
+    "algosdk": "^1.21.0",
+    "buffer": "^6.0.3",
+    "commander": "^9.4.0",
+    "typescript": "^4.7.4"
   }
 }
