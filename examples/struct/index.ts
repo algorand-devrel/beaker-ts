@@ -8,7 +8,7 @@ import { Order, Structer } from "./structer_client";
   if(acct === undefined) return
 
   const appClient = new Structer({
-    client: bkr.sandbox.getAlgodClient(),
+    client: bkr.clients.sandboxAlgod(),
     signer: acct.signer,
     sender: acct.addr,
   });

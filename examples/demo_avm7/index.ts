@@ -8,7 +8,7 @@ import { DemoAVM7 } from "./demoavm7_client";
   if (acct === undefined) return;
 
   const appClient = new DemoAVM7({
-    client: bkr.sandbox.getAlgodClient(),
+    client: bkr.clients.sandboxAlgod(),
     signer: acct.signer,
     sender: acct.addr,
   });

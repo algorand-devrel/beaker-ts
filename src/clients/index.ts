@@ -1,3 +1,3 @@
-export {Network, APIProvider} from './config'
-export {getAlgodClient} from './algod'
-export {getIndexerClient} from './indexer'
+export { Network, APIProvider } from './config';
+export { sandboxAlgod, getAlgodClient } from './algod';
+export { sandboxIndexer, getIndexerClient } from './indexer';

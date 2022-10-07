@@ -1,5 +1,5 @@
-import algosdk from 'algosdk'
-import {Network, APIProvider, IndexerConfig} from './config'
+import algosdk from 'algosdk';
+import { Network, APIProvider, IndexerConfig } from './config';
 
 type NetworkConfig = Record<Network, IndexerConfig | undefined>;
 
@@ -8,7 +8,7 @@ export const IndexerAPIs: Record<APIProvider, NetworkConfig> = {
     [Network.SandNet]: {
       host: 'http://localhost',
       port: '8980',
-      token: 'a'.repeat(63),
+      token: 'a'.repeat(64),
     },
     [Network.BetaNet]: undefined,
     [Network.MainNet]: undefined,
@@ -96,8 +96,6 @@ export function getIndexerClient(
   return new algosdk.Indexer(apiToken, indexerConf.host, indexerConf.port);
 }
 
-
-
-
-
-  
+export function sandboxIndexer(): algosdk.Indexer {
+  return getIndexerClient(APIProvider.Sandbox, Network.SandNet);
+}

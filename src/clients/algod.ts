@@ -1,5 +1,5 @@
 import algosdk from 'algosdk';
-import {Network, APIProvider, AlgodConfig} from './config'
+import { Network, APIProvider, AlgodConfig } from './config';
 
 type NetworkConfig = Record<Network, AlgodConfig | undefined>;
 
@@ -7,8 +7,8 @@ export const AlgodAPIs: Record<APIProvider, NetworkConfig> = {
   [APIProvider.Sandbox]: {
     [Network.SandNet]: {
       host: 'http://localhost',
-      port: '4000',
-      token: 'a'.repeat(63),
+      port: '4001',
+      token: 'a'.repeat(64),
     },
     [Network.BetaNet]: undefined,
     [Network.MainNet]: undefined,
@@ -94,4 +94,8 @@ export function getAlgodClient(
   }
 
   return new algosdk.Algodv2(apiToken, algodConf.host, algodConf.port);
+}
+
+export function sandboxAlgod(): algosdk.Algodv2 {
+  return getAlgodClient(APIProvider.Sandbox, Network.SandNet);
 }
