@@ -14,26 +14,6 @@ program
   .description('Utilities for working with beaker applications')
   .version('0.0.35');
 
-// program
-//   .command('init')
-//   .description('initialize a directory for a beaker application')
-//   .arguments('<path>')
-//   .action((path)=>{
-//     // check if path exists, bail
-//
-//     // check if python 3.10 is installed, bail
-//     // create directory
-//     // create contract dir
-//     //  create virtual environment
-//     //  install beaker-pyteal (or c# or reach)
-//     //  create dummy app
-//
-//     // install vite
-//
-//     console.log(path)
-//
-//   })
-
 program
   .command('generate')
   .description('Generates an application client given an application spec')
