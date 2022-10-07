@@ -71,7 +71,7 @@ import {HelloBeaker} from "./hellobeaker_client";
   // Including a signer lets it worry about signing
   // the app call transactions 
   const appClient = new HelloBeaker({
-    client: bkr.sandbox.getAlgodClient(),
+    client: bkr.clients.sandboxAlgod(),
     signer: acct.signer,
     sender: acct.addr,
   });
