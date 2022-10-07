@@ -1,6 +1,5 @@
 import algosdk from "algosdk";
 import * as bkr from "../../src";
-import { APIProvider, Network } from "../../src/clients";
 import { ConstantProductAMM } from "./constantproductamm_client";
 
 (async function () {
