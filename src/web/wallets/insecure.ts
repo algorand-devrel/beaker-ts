@@ -1,5 +1,5 @@
 import type { Transaction } from 'algosdk';
-import { SignedTxn, Wallet } from './wallet';
+import { WalletData, SignedTxn, Wallet } from './wallet';
 import algosdk from 'algosdk';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -11,14 +11,12 @@ const logo =
 class InsecureWallet extends Wallet {
   pkToSk: Record<string, algosdk.Account>;
 
-  constructor(network: string) {
-    super(network);
+  constructor(network: string, data: WalletData) {
+    super(network, data);
     this.pkToSk = {};
   }
 
   override async connect(storedMnemonic: string): Promise<boolean> {
-
-
     const mnemonic = storedMnemonic
       ? storedMnemonic
       : prompt(
@@ -65,7 +63,7 @@ class InsecureWallet extends Wallet {
 
   override async signTxns(txns: Transaction[]): Promise<SignedTxn[]> {
     const signed = [];
-    const defaultAddr = this.getDefaultAccount();
+    const defaultAddr = this.getDefaultAddress();
     for (const txidx in txns) {
       const txn = txns[txidx];
       if (txn === undefined) continue;

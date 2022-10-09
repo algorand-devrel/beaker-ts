@@ -5,14 +5,20 @@ export interface SignedTxn {
   blob: Uint8Array;
 }
 
+export interface WalletData {
+  acctList: string[];
+  defaultAcctIdx: number;
+}
+
+
 export class Wallet {
   accounts: string[];
   defaultAccount: number;
   network: string;
 
-  constructor(network: string) {
-    this.accounts = [];
-    this.defaultAccount = 0;
+  constructor(network: string, data: WalletData) {
+    this.accounts = data.acctList;
+    this.defaultAccount = data.defaultAcctIdx;
     this.network = network;
   }
 
@@ -27,9 +33,7 @@ export class Wallet {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
   async connect(_settings?: any): Promise<boolean> {
-    return new Promise(() => {
-      false;
-    });
+    return new Promise(() => { false; });
   }
 
   isConnected(): boolean {
@@ -40,18 +44,17 @@ export class Wallet {
     return;
   }
 
-  getDefaultAccount(): string {
-    if (!this.isConnected()) throw new Error('No default account set');
+  getDefaultAddress(): string {
+    if (!this.isConnected()) throw new Error('Not connected');
 
     const defaultAcct = this.accounts[this.defaultAccount];
     if (defaultAcct === undefined) throw new Error('No default account set');
+
     return defaultAcct;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   signTxns(_txns: Transaction[]): Promise<SignedTxn[]> {
-    return new Promise(() => {
-      [];
-    });
+    return new Promise(() => { []; });
   }
 }

@@ -1,13 +1,13 @@
 import algosdk from 'algosdk';
-import { Wallet, SignedTxn } from './wallet';
+import { WalletData, Wallet, SignedTxn } from './wallet';
 import type { KMDConfig } from '../../sandbox/accounts';
 import { sandbox } from '../..';
 
 export class KMDWallet extends Wallet {
   pkToSk: Record<string, algosdk.Account>;
 
-  constructor(network: string) {
-    super(network);
+  constructor(network: string, data: WalletData) {
+    super(network, data);
     this.pkToSk = {};
   }
 
@@ -43,7 +43,7 @@ export class KMDWallet extends Wallet {
 
   override async signTxns(txns: algosdk.Transaction[]): Promise<SignedTxn[]> {
     const signed = [];
-    const defaultAddr = this.getDefaultAccount();
+    const defaultAddr = this.getDefaultAddress();
     for (const txidx in txns) {
       const txn = txns[txidx];
       if (txn === undefined) continue;
