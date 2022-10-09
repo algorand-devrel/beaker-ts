@@ -17,8 +17,8 @@ export class Wallet {
   network: string;
 
   constructor(network: string, data: WalletData) {
-    this.accounts = data.acctList;
-    this.defaultAccount = data.defaultAcctIdx;
+    this.accounts = data? data.acctList : [] ;
+    this.defaultAccount = data?data.defaultAcctIdx:0;
     this.network = network;
   }
 

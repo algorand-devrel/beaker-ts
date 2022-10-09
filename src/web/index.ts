@@ -1,2 +1,2 @@
 export { Wallet } from './wallets/wallet';
-export { useSessionWallet, SessionWallet, ImplementedWallets } from './session_wallet';
+export { DummySigner, useSessionWallet, SessionWalletData, SessionWallet, ImplementedWallets } from './session_wallet';

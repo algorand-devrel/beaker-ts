@@ -9,7 +9,7 @@ import { KMDWallet } from './wallets/kmd';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const sessionStorage: any;
 
-// lambda to add network to the key so we dont cross streams 
+// lambda to add network to the key so we dont cross streams
 const walletDataKey = (network: string): string => `bkr-${network}-wallet-data`;
 
 // If you implement a new wallet, add it here and to `ImplementedWallets`
@@ -29,6 +29,13 @@ export const ImplementedWallets: Record<string, typeof Wallet> = {
   [WalletName.KMDWallet]: KMDWallet,
 };
 
+// If you just
+export const DummySigner: TransactionSigner = (
+  _txnGroup: Transaction[],
+  _indexesToSign: number[],
+): Promise<Uint8Array[]> => {
+  return Promise.resolve([]);
+};
 
 // Stuff we return from the hook
 interface SessionWalletProps {
@@ -44,9 +51,9 @@ export function useSessionWallet(network: string): SessionWalletProps {
 }
 
 // Serialized obj to store in session storage
-interface SessionWalletData  {
-  walletPreference: WalletName
-  data: WalletData
+export interface SessionWalletData {
+  walletPreference: WalletName;
+  data: WalletData;
 }
 
 export class SessionWallet {
@@ -59,25 +66,16 @@ export class SessionWallet {
     this.data = data;
 
     // Get type to initialize
-    const wtype = (ImplementedWallets[data.walletPreference] ||= InsecureWallet);
-    // Load from session storage into memory
-    this.wallet = new wtype(network, SessionWallet.getWalletData(network).data);
+    const wtype = (ImplementedWallets[data.walletPreference] ||=
+      InsecureWallet);
+
+    this.wallet = new wtype(network, data.data);
   }
 
   async connect(): Promise<boolean> {
-    if (this.wallet === undefined) return false;
-
-    switch (this.data.walletPreference) {
-
-      case 'insecure-wallet':
-        if (await this.wallet.connect()) return true;
-        break;
-      case 'wallet-connect':
-        if(await this.wallet.connect((_acctList: string[]) => {  })) return true;
-        break;
-      default:
-        if (await this.wallet.connect())  return true;
-        break;
+    if (await this.wallet.connect()) {
+      this.save();
+      return true;
     }
 
     // Fail
@@ -87,14 +85,30 @@ export class SessionWallet {
 
   disconnect(): void {
     if (this.wallet !== undefined) this.wallet.disconnect();
-    SessionWallet.setWalletData(this.network, {} as SessionWalletData);
+    this.save()
   }
 
   connected(): boolean {
     return this.wallet !== undefined && this.wallet.isConnected();
   }
 
-  // 
+  setAcctIdx(idx: number): void {
+    this.wallet.defaultAccount = idx
+    this.save()
+  }
+
+  // Persist the current state to session storage
+  save(): void {
+    SessionWallet.setWalletData(this.network, {
+      walletPreference: this.data.walletPreference,
+      data: {
+        acctList: this.wallet.accounts,
+        defaultAcctIdx: this.wallet.defaultAccount,
+      }
+    } as SessionWalletData)
+  }
+
+  //
   address(): string {
     return this.wallet.getDefaultAddress();
   }
@@ -113,7 +127,6 @@ export class SessionWallet {
     };
   }
 
-
   async signTxn(txns: Transaction[]): Promise<SignedTxn[]> {
     if (!this.connected() && !(await this.connect())) return [];
     return this.wallet.signTxns(txns);
@@ -128,7 +141,11 @@ export class SessionWallet {
 
   static getWalletData(network: string): SessionWalletData {
     const data = sessionStorage.getItem(walletDataKey(network));
-    return (data === null || data === '' ? {data:{acctList: [], defaultAcctIdx: 0}} : JSON.parse(data)) as SessionWalletData;
+    return (
+      data === null || data === ''
+        ? { data: { acctList: [], defaultAcctIdx: 0 } }
+        : JSON.parse(data)
+    ) as SessionWalletData;
   }
 
   static setWalletData(network: string, data: SessionWalletData): void {
