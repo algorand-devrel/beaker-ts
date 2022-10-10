@@ -28,7 +28,6 @@ class InsecureWallet extends Wallet {
     const sk = algosdk.mnemonicToSecretKey(mnemonic);
     this.accounts = [sk.addr];
     this.pkToSk = { [sk.addr]: sk };
-    this.defaultAccount = 0;
     return true;
   }
 

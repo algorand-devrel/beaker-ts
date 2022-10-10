@@ -43,66 +43,72 @@ export interface SessionWalletData {
   data: WalletData;
 }
 
-export class SessionWallet {
-  wallet: Wallet;
-  data: SessionWalletData;
-  network: string;
+export class SessionWalletManager {
 
-  constructor(network: string, data: SessionWalletData) {
-    this.network = network;
-    this.data = data;
-
-    // Get type to initialize
-    const wtype = (ImplementedWallets[data.walletPreference] ||=
-      InsecureWallet);
-
-    this.wallet = new wtype(network, data.data);
+  static setWalletPreference(network: string, pref: WalletName): void {
+    const walletData = SessionWalletManager.read(network)
+    if(!(pref in ImplementedWallets)) throw new Error(`Unknown wallet preference: ${pref}`)
+    SessionWalletManager.write(network, {...walletData, walletPreference: pref})
   }
 
-  async connect(): Promise<boolean> {
-    if (await this.wallet.connect()) {
-      this.save();
+  static getWallet(network: string, swd: SessionWalletData): Wallet {
+    const w = ImplementedWallets[swd.walletPreference]
+    if(w === undefined) throw new Error("Unknown wallet preference")
+    return new w(network, swd.data)
+  }
+
+  static async connect(network: string): Promise<boolean> {
+    const swd = SessionWalletManager.read(network)
+    const wallet = SessionWalletManager.getWallet(network, swd)
+
+    if (await wallet.connect()) {
+      // Persist state in session storage
+      SessionWalletManager.write(network, {...swd, data:wallet.serialize()})
       return true;
     }
-
     // Fail
-    this.disconnect();
+    wallet.disconnect();
     return false;
   }
 
-  disconnect(): void {
-    if (this.wallet !== undefined) this.wallet.disconnect();
-    this.save()
+  static disconnect(network: string): void {
+    const swd = SessionWalletManager.read(network)
+    const wallet = SessionWalletManager.getWallet(network, swd)
+
+    if (wallet !== undefined) wallet.disconnect();
+    SessionWalletManager.write(network, {...swd, data:wallet.serialize()})
   }
 
-  connected(): boolean {
-    return this.wallet !== undefined && this.wallet.isConnected();
+  static connected(network: string): boolean {
+    const swd = SessionWalletManager.read(network)
+    const wallet = SessionWalletManager.getWallet(network, swd)
+    return wallet !== undefined && wallet.isConnected();
   }
 
-  setAcctIdx(idx: number): void {
-    this.wallet.defaultAccount = idx
-    this.save()
-  }
+  static setAcctIdx(network: string, idx: number): void {
+    const swd = SessionWalletManager.read(network)
+    const wallet = SessionWalletManager.getWallet(network, swd)
 
-  // Persist the current state to session storage
-  save(): void {
-    SessionWallet.setWalletData(this.network, {
-      walletPreference: this.data.walletPreference,
-      data: {
-        acctList: this.wallet.accounts,
-        defaultAcctIdx: this.wallet.defaultAccount,
-      }
-    } as SessionWalletData)
+    wallet.setDefaultIdx(idx)
+    SessionWalletManager.write(network, {...swd, data:wallet.serialize()})
   }
 
   //
-  address(): string {
-    return this.wallet.getDefaultAddress();
+  static wallet(network: string): Wallet {
+    return SessionWalletManager.getWallet(network, SessionWalletManager.read(network))
+  }
+  static address(network: string): string {
+    const swd = SessionWalletManager.read(network)
+    const wallet = SessionWalletManager.getWallet(network, swd)
+    return wallet.getDefaultAddress();
   }
 
-  signer(): TransactionSigner {
+  static signer(network: string): TransactionSigner {
+    const swd = SessionWalletManager.read(network)
+    const wallet = SessionWalletManager.getWallet(network, swd)
+
     return (txnGroup: Transaction[], indexesToSign: number[]) => {
-      return Promise.resolve(this.sign(txnGroup)).then(
+      return Promise.resolve(wallet.sign(txnGroup)).then(
         (txns: SignedTxn[]) => {
           return txns
             .map((tx) => {
@@ -114,19 +120,8 @@ export class SessionWallet {
     };
   }
 
-  async sign(txns: Transaction[]): Promise<SignedTxn[]> {
-    if (!this.connected() && !(await this.connect())) return [];
-    return this.wallet.sign(txns);
-  }
-
   // Static methods
-
-  static fromSession(network: string): SessionWallet {
-    const data = SessionWallet.getWalletData(network);
-    return new SessionWallet(network, data);
-  }
-
-  static getWalletData(network: string): SessionWalletData {
+  static read(network: string): SessionWalletData {
     const data = sessionStorage.getItem(walletDataKey(network));
     return (
       data === null || data === ''
@@ -135,7 +130,7 @@ export class SessionWallet {
     ) as SessionWalletData;
   }
 
-  static setWalletData(network: string, data: SessionWalletData): void {
+  static write(network: string, data: SessionWalletData): void {
     sessionStorage.setItem(walletDataKey(network), JSON.stringify(data));
   }
 }

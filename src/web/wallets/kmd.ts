@@ -41,6 +41,11 @@ export class KMDWallet extends Wallet {
     return KMDWallet.img(inverted);
   }
 
+  override disconnect(): void {
+      this.accounts = []
+      this.pkToSk = {}
+  }
+
   override async sign(txns: algosdk.Transaction[]): Promise<SignedTxn[]> {
     const signed = [];
     const defaultAddr = this.getDefaultAddress();
