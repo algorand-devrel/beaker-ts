@@ -57,7 +57,7 @@ export class Wallet {
   }
 
   disconnect(): void {
-    throw new Error('Not implemented');
+    this.accounts = []
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

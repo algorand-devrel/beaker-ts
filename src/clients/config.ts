@@ -20,8 +20,8 @@ export enum APIProvider {
 }
 
 export enum Network {
-  BetaNet = 'betanet',
-  TestNet = 'testnet',
-  MainNet = 'mainnet',
-  SandNet = 'sandnet',
+  BetaNet = 'BetaNet',
+  TestNet = 'TestNet',
+  MainNet = 'MainNet',
+  SandNet = 'SandNet',
 }
