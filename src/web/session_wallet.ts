@@ -106,7 +106,6 @@ export class SessionWalletManager {
   static signer(network: string): TransactionSigner {
     const swd = SessionWalletManager.read(network)
     const wallet = SessionWalletManager.getWallet(network, swd)
-
     return (txnGroup: Transaction[], indexesToSign: number[]) => {
       return Promise.resolve(wallet.sign(txnGroup)).then(
         (txns: SignedTxn[]) => {

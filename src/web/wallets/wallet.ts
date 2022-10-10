@@ -8,6 +8,7 @@ export interface SignedTxn {
 export interface WalletData {
   acctList: string[];
   defaultAcctIdx: number;
+  extra: Record<string, any>;
 }
 
 export class Wallet {
