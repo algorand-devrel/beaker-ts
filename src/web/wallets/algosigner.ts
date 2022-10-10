@@ -66,7 +66,7 @@ class AlgoSignerWallet extends Wallet {
     return false;
   }
 
-  async signTxn(txns: Transaction[]): Promise<SignedTxn[]> {
+  override async sign(txns: Transaction[]): Promise<SignedTxn[]> {
     const defaultAcct = this.getDefaultAddress();
 
     const encodedTxns = txns.map((tx: Transaction) => {

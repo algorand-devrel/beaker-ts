@@ -29,26 +29,13 @@ export const ImplementedWallets: Record<string, typeof Wallet> = {
   [WalletName.KMDWallet]: KMDWallet,
 };
 
-// If you just
-export const DummySigner: TransactionSigner = (
+// If you just need a placeholder signer
+export const PlaceHolderSigner: TransactionSigner = (
   _txnGroup: Transaction[],
   _indexesToSign: number[],
 ): Promise<Uint8Array[]> => {
   return Promise.resolve([]);
 };
-
-// Stuff we return from the hook
-interface SessionWalletProps {
-  wallet: SessionWallet;
-  connected: boolean;
-}
-
-// hook for react stuff to return a SessionWallet
-export function useSessionWallet(network: string): SessionWalletProps {
-  const wallet = SessionWallet.fromSession(network);
-  const connected = wallet.connected();
-  return { wallet, connected };
-}
 
 // Serialized obj to store in session storage
 export interface SessionWalletData {
@@ -115,7 +102,7 @@ export class SessionWallet {
 
   signer(): TransactionSigner {
     return (txnGroup: Transaction[], indexesToSign: number[]) => {
-      return Promise.resolve(this.signTxn(txnGroup)).then(
+      return Promise.resolve(this.sign(txnGroup)).then(
         (txns: SignedTxn[]) => {
           return txns
             .map((tx) => {
@@ -127,9 +114,9 @@ export class SessionWallet {
     };
   }
 
-  async signTxn(txns: Transaction[]): Promise<SignedTxn[]> {
+  async sign(txns: Transaction[]): Promise<SignedTxn[]> {
     if (!this.connected() && !(await this.connect())) return [];
-    return this.wallet.signTxns(txns);
+    return this.wallet.sign(txns);
   }
 
   // Static methods

@@ -41,7 +41,7 @@ export class KMDWallet extends Wallet {
     return KMDWallet.img(inverted);
   }
 
-  override async signTxns(txns: algosdk.Transaction[]): Promise<SignedTxn[]> {
+  override async sign(txns: algosdk.Transaction[]): Promise<SignedTxn[]> {
     const signed = [];
     const defaultAddr = this.getDefaultAddress();
     for (const txidx in txns) {
@@ -49,6 +49,7 @@ export class KMDWallet extends Wallet {
       if (txn === undefined) continue;
 
       const addr = algosdk.encodeAddress(txn.from.publicKey);
+      
       const acct = this.pkToSk[addr];
 
       if (acct !== undefined && addr === defaultAddr) {

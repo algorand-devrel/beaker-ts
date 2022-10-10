@@ -61,7 +61,7 @@ class InsecureWallet extends Wallet {
     this.pkToSk = {};
   }
 
-  override async signTxns(txns: Transaction[]): Promise<SignedTxn[]> {
+  override async sign(txns: Transaction[]): Promise<SignedTxn[]> {
     const signed = [];
     const defaultAddr = this.getDefaultAddress();
     for (const txidx in txns) {

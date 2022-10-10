@@ -91,7 +91,7 @@ class WC extends Wallet {
     this.connector.killSession();
   }
 
-  async signTxn(txns: Transaction[]): Promise<SignedTxn[]> {
+  override async sign(txns: Transaction[]): Promise<SignedTxn[]> {
     const defaultAddress = this.getDefaultAddress();
     const txnsToSign = txns.map((txn) => {
       const encodedTxn = Buffer.from(

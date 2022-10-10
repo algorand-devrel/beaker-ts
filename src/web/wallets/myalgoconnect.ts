@@ -83,7 +83,7 @@ class MyAlgoConnectWallet extends Wallet {
     return signedTxns;
   }
 
-  async signTxn(txns: Transaction[]): Promise<SignedTxn[]> {
+  override async sign(txns: Transaction[]): Promise<SignedTxn[]> {
     const defaultAcct = this.getDefaultAddress();
     if (defaultAcct === undefined) return [];
 

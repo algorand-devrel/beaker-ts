@@ -22,26 +22,8 @@ export class Wallet {
     this.network = network;
   }
 
-  static displayName(): string {
-    return '';
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  static img(_inverted: boolean): string {
-    return '';
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-  async connect(_settings?: any): Promise<boolean> {
-    return new Promise(() => { false; });
-  }
-
   isConnected(): boolean {
     return this.accounts && this.accounts.length > 0;
-  }
-
-  disconnect(): void {
-    return;
   }
 
   getDefaultAddress(): string {
@@ -49,12 +31,30 @@ export class Wallet {
 
     const defaultAcct = this.accounts[this.defaultAccount];
     if (defaultAcct === undefined) throw new Error('No default account set');
-
     return defaultAcct;
   }
 
+  // Implement in the child class
+  static displayName(): string {
+    throw new Error("Not implemented")
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  signTxns(_txns: Transaction[]): Promise<SignedTxn[]> {
-    return new Promise(() => { []; });
+  static img(_inverted: boolean): string {
+    throw new Error("Not implemented")
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+  async connect(_settings?: any): Promise<boolean> {
+    throw new Error("Not implemented")
+  }
+
+  disconnect(): void {
+    throw new Error("Not implemented")
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  sign(_txns: Transaction[]): Promise<SignedTxn[]> {
+    throw new Error("Not implemented")
   }
 }
